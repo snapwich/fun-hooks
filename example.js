@@ -6,7 +6,7 @@ function sync(a, b) {
 function cb(c , d) {}
 
 function async(a, b, cb) {
-	cb(a, b);''
+	cb(a, b);
 }
 
 function prom(a, b) {
