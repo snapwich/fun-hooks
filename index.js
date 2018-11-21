@@ -39,19 +39,28 @@ function create(config = {}) {
         // }
 
         function genTrap() {
-            if (hooks.a.length || hooks.b.length) {
-                let code = 'r=t.apply(h,arguments)';
-                if (hooks.b.length) {
-                    code = `function extract(){${code}}`;
-                    for (let i = hooks.b.length; i-- > 0; ) {
-                        if (i === 0) {
-                            code = `this.b[${i}].fn.apply(h,[${code}].concat(a));`;
-                        } else {
-                            code = `this.b[${i}].fn.bind(h,${code})`
-                        }
+            function chainCallbacks(hooks, code) {
+                for (let i = hooks.length; i-- > 0; ) {
+                    if (i === 0) {
+                        code = 'this.b[' + i + '].fn.apply(h,[' + code + '].concat(a))';
+                    } else {
+                        code = 'this.b[' + i + '].fn.bind(h,' + code + ')';
                     }
                 }
-                code += 'return r;';
+                return code;
+            }
+
+            if (hooks.a.length || hooks.b.length) {
+                let beforeCode = 'r=t.apply(h,arguments)';
+                let afterCode;
+                if (hooks.b.length) {
+                    beforeCode = chainCallbacks(hooks.b, 'function extract(){' + beforeCode + '}');
+                }
+                if (hooks.a.length) {
+                    afterCode = chainCallbacks(hooks.a, 'function extract(s){r=s}');
+                }
+
+                let code = ['"use strict"', 'var r', beforeCode, afterCode, 'return r'].join(';');
 
                 trap = (new Function('t,h,a', code)).bind(hooks);
                 handlers.apply = trap;
@@ -111,23 +120,23 @@ hookedFn.before(function before3(cb, a, b) {
     cb.apply(this, [a, b]);
 });
 
-function after1(cb, a) {
+hookedFn.after(function after1(cb, a) {
     console.log("after1", [a]);
     a++;
     cb.apply(this, [a]);
-}
+});
 
-function after2(cb, a) {
+hookedFn.after(function after2(cb, a) {
     console.log("after2", [a]);
     a++;
     cb.apply(this, [a]);
-}
+});
 
-function after3(cb, a) {
+hookedFn.after(function after3(cb, a) {
     console.log("after3", [a]);
     a++;
     cb.apply(this, [a]);
-}
+});
 
 
 let result = hookedFn(1, 2);
