@@ -9,51 +9,12 @@ function create(config = {}) {
     let handlers = {};
     let before = [];
     let after = [];
-    let hooks = {
-      b: [],
-      a: []
-    };
-
     let trap;
 
-    // function trap(a, b, c) {
-    //     let r;
-    //     before1.apply(b, [
-    //         before2.bind(b,
-    //             before3.bind(b,
-    //                 function extract() {
-    //                     r = a.apply(b, arguments)
-    //                 }
-    //             )
-    //         )
-    //     ].concat(c));
-    //     after1.apply(b, [
-    //         after2.bind(b,
-    //             after3.bind(b,
-    //                 function extract(ret) {
-    //                     r = ret;
-    //                 }
-    //             )
-    //         ), [r]
-    //     ]);
-    //     return r;
-    // }
-
-    function genTrap() {
-      function chainSyncCallbacks(hooks, name, code) {
+    function generateTrap() {
+      function chainCallbacks(hooks, name, code) {
         for (let i = hooks.length; i-- > 0;) {
-          if (i === 0) {
-            code = name + '[' + i + '].fn.apply(h,[' + code +
-              (name === 'b' ? '].concat(g))' : ',r])');
-          } else {
-            code = name + '[' + i + '].fn.bind(h,' + code + ')';
-          }
-        }
-        return code;
-      }
-      function chainAsyncCallbacks(hooks, name, code) {
-        for (let i = hooks.length; i-- > 0;) {
-          if (i === 0) {
+          if (i === 0 && !(type === 'async' && name ==='a')) {
             code = name + '[' + i + '].fn.apply(h,[' + code +
               (name === 'b' ? '].concat(g))' : ',r])');
           } else {
@@ -64,27 +25,28 @@ function create(config = {}) {
       }
 
       if (before.length || after.length) {
+        let code;
         if (type === 'sync') {
           let beforeCode = 'r=t.apply(h,' + (before.length ? 'arguments' : 'g') + ')';
           let afterCode;
           if (before.length) {
-            beforeCode = chainSyncCallbacks(before, 'b', 'function extract(){' + beforeCode + '}');
+            beforeCode = chainCallbacks(before, 'b', 'function extract(){' + beforeCode + '}');
           }
           if (after.length) {
-            afterCode = chainSyncCallbacks(after, 'a', 'function extract(s){r=s}');
+            afterCode = chainCallbacks(after, 'a', 'function extract(s){r=s}');
           }
-
-          let code = ['"use strict"', 'var r', beforeCode, afterCode, 'return r'].join(';');
-
-          console.log(code);
-
-          trap = (new Function('b,a,t,h,g', code)).bind(null, before, after);
-          handlers.apply = trap;
+          code = ['"use strict"', 'var r', beforeCode, afterCode, 'return r'].join(';');
         } else if(type === 'async') {
-          let code = chainCallbacks(before, 'b', '')
-
-          code = ['"use strict"', 'let r;let z=g.pop();', code].join(';');
+          code = [
+            '"use strict"',
+            'let z=g.pop()',
+            chainCallbacks(before, 'b', 'function partial(){t.apply(b,Array.prototype.slice.call(arguments).concat('
+              + chainCallbacks(after, 'a', 'z') + ' ))}')
+          ].join(';');
         }
+        console.log(code);
+        trap = (new Function('b,a,t,h,g', code)).bind(null, before, after);
+        handlers.apply = trap;
       } else {
         delete handlers.apply;
       }
@@ -98,10 +60,10 @@ function create(config = {}) {
       let entry = {fn, priority};
       this.push(entry);
       this.sort((a, b) => b.priority - a.priority);
-      genTrap();
+      generateTrap();
       return function () {
         this.splice(this.indexOf(entry), 1);
-        genTrap();
+        generateTrap();
       }
     }
 
@@ -118,50 +80,52 @@ function create(config = {}) {
   }
 }
 
-let hookedFn = create()('sync', function sum(a, b) {
+let hookedFn = create()('async', function sum(a, b, cb) {
   console.log('sum', [a, b]);
-  return a + b;
+  cb(a + b, 1);
 });
 
-// hookedFn.before(function before1(cb, a, b) {
-//   console.log("before1", [a, b]);
-//   a++;
-//   cb.apply(this, [a, b]);
-// });
-//
-// hookedFn.before(function before2(cb, a, b) {
-//   console.log("before2", [a, b]);
-//   a++;
-//   cb.apply(this, [a, b]);
-// });
-//
-// hookedFn.before(function before3(cb, a, b) {
-//   console.log("before3", [a, b]);
-//   a++;
-//   cb.apply(this, [a, b]);
-// });
-//
-hookedFn.after(function after1(cb, a) {
-  console.log("after1", [a]);
+hookedFn.before(function before1(cb, a, b) {
+  console.log("before1", [a, b]);
   a++;
-  cb.apply(this, [a]);
+  cb.apply(this, [a, b]);
 });
-//
-// hookedFn.after(function after2(cb, a) {
-//   console.log("after2", [a]);
-//   a++;
-//   cb.apply(this, [a]);
-// });
-//
-// hookedFn.after(function after3(cb, a) {
-//   console.log("after3", [a]);
-//   a++;
-//   cb.apply(this, [a]);
-// });
+
+hookedFn.before(function before2(cb, a, b) {
+  console.log("before2", [a, b]);
+  a++;
+  cb.apply(this, [a, b]);
+});
+
+hookedFn.before(function before3(cb, a, b) {
+  console.log("before3", [a, b]);
+  a++;
+  cb.apply(this, [a, b]);
+});
+
+hookedFn.after(function after1(cb, a, b) {
+  console.log("after1", [a, b]);
+  a++;
+  cb.apply(this, [a, b]);
+});
+
+hookedFn.after(function after2(cb, a, b) {
+  console.log("after2", [a, b]);
+  a++;
+  cb.apply(this, [a, b]);
+});
+
+hookedFn.after(function after3(cb, a, b) {
+  console.log("after3", [a, b]);
+  a++;
+  cb.apply(this, [a, b]);
+});
 
 
-let result = hookedFn(1, 2);
+let result = hookedFn(1, 2, function(a, b) {
+  console.log('result', [a, b]);
+});
 
-console.log('result', result);
 
-module.exports = create;
+
+// module.exports = create;
