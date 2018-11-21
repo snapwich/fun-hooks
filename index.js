@@ -1,37 +1,4 @@
 
-
-
-function before1(cb, ...args) {
-    console.log("before1", args);
-    cb.apply(this, args);
-}
-
-function before2(cb, ...args) {
-    console.log("before2", args);
-    cb.apply(this, args);
-}
-
-function before3(cb, ...args) {
-    console.log("before3", args);
-    cb.apply(this, args);
-}
-
-function after1(cb, ...args) {
-    console.log("after1", args);
-    cb.apply(this, args);
-}
-
-function after2(cb, ...args) {
-    console.log("after2", args);
-    cb.apply(this, args);
-}
-
-function after3(cb, ...args) {
-    console.log("after3", args);
-    cb.apply(this, args);
-}
-
-
 const hasProxy = typeof Proxy === 'function';
 
 function create(config = {}) {
@@ -40,50 +7,131 @@ function create(config = {}) {
     let useProxy = config.useProxy || hasProxy;
 
     return function hook(type, fn, name) {
-        let handler = {
-            apply: trap
+        let handlers = {};
+        let hooks = {
+            b: [],
+            a: []
         };
-        let _before = [];
-        let _after = [];
 
-        function trap(target, thisArg, args) {
-            let result;
-            before1.apply(thisArg, [
-                before2.bind(thisArg,
-                    before3.bind(thisArg,
-                        (...args) => result = after1.apply(thisArg, [fn.apply(thisArg, args)])
-                    )
-                ),
-            ...args]);
-            console.log('result', result);
-        }
+        let trap;
 
-        function remove() {
+        // function trap(a, b, c) {
+        //     let r;
+        //     before1.apply(b, [
+        //         before2.bind(b,
+        //             before3.bind(b,
+        //                 function extract() {
+        //                     r = a.apply(b, arguments)
+        //                 }
+        //             )
+        //         )
+        //     ].concat(c));
+        //     after1.apply(b, [
+        //         after2.bind(b,
+        //             after3.bind(b,
+        //                 function extract(ret) {
+        //                     r = ret;
+        //                 }
+        //             )
+        //         ), [r]
+        //     ]);
+        //     return r;
+        // }
 
-        }
+        function genTrap() {
+            if (hooks.a.length || hooks.b.length) {
+                let code = 'r=t.apply(h,arguments)';
+                if (hooks.b.length) {
+                    code = `function extract(){${code}}`;
+                    for (let i = hooks.b.length; i-- > 0; ) {
+                        if (i === 0) {
+                            code = `this.b[${i}].fn.apply(h,[${code}].concat(a));`;
+                        } else {
+                            code = `this.b[${i}].fn.bind(h,${code})`
+                        }
+                    }
+                }
+                code += 'return r;';
 
-        Object.assign(trap, {
-            before() {
-                return remove;
-            },
-            after() {
-                return remove;
+                trap = (new Function('t,h,a', code)).bind(hooks);
+                handlers.apply = trap;
+            } else {
+                delete handlers.apply;
             }
-        });
+        }
+
+        function wrapper(...args) {
+            return trap(fn, this, args)
+        }
+
+        function add(fn, priority) {
+            let entry = {fn, priority};
+            this.push(entry);
+            this.sort((a, b) => b.priority - a.priority);
+            genTrap();
+            return function() {
+                this.splice(this.indexOf(entry), 1);
+                genTrap();
+            }
+        }
+
+        let methods =  {
+            before: add.bind(hooks.b),
+            after: add.bind(hooks.a)
+        };
 
         if (useProxy) {
-            return new Proxy(fn, handler)
+            return Object.assign(new Proxy(fn, handlers), methods);
         }
 
-        return hasProxy ? fn : trap;
+        return Object.assign(wrapper, methods);
     }
 }
 
 let hookedFn = create()('sync', function sum(a, b) {
-    console.log('sum', arguments);
+    console.log('sum', [a, b]);
     return a + b;
 });
 
-hookedFn(1, 2);
+hookedFn.before(function before1(cb, a, b) {
+    console.log("before1", [a, b]);
+    a++;
+    cb.apply(this, [a, b]);
+});
+
+hookedFn.before(function before2(cb, a, b) {
+    console.log("before2", [a, b]);
+    a++;
+    cb.apply(this, [a, b]);
+});
+
+hookedFn.before(function before3(cb, a, b) {
+    console.log("before3", [a, b]);
+    a++;
+    cb.apply(this, [a, b]);
+});
+
+function after1(cb, a) {
+    console.log("after1", [a]);
+    a++;
+    cb.apply(this, [a]);
+}
+
+function after2(cb, a) {
+    console.log("after2", [a]);
+    a++;
+    cb.apply(this, [a]);
+}
+
+function after3(cb, a) {
+    console.log("after3", [a]);
+    a++;
+    cb.apply(this, [a]);
+}
+
+
+let result = hookedFn(1, 2);
+
+console.log('result', result);
 
 module.exports = create;
