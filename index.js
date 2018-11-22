@@ -3,12 +3,25 @@ const hasProxy = typeof Proxy === 'function';
 function create(config = {}) {
   let hooks = new Map();
 
-  let useProxy = config.useProxy || hasProxy;
+  let useProxy = typeof config.useProxy !== 'undefined' ? config.useProxy : hasProxy;
 
   return function hook(type, fn, name) {
-    let handlers = {};
     let before = [];
     let after = [];
+    let beforeFn = add.bind(before);
+    let afterFn = add.bind(after);
+    let handlers = {
+      get(target, prop, receiver) {
+        switch(prop) {
+          case 'before':
+            return beforeFn;
+          case 'after':
+            return afterFn;
+          default:
+            return Reflect.get(...arguments)
+        }
+      }
+    };
 
     function generateTrap() {
       function chainCallbacks(hooks, name, code) {
@@ -49,8 +62,7 @@ function create(config = {}) {
       }
     }
 
-    function wrapper() {
-      let args = Array.prototype.slice.call(arguments);
+    function wrapper(...args) {
       return handlers.apply ? handlers.apply(fn, this, args) : fn.apply(this, args);
     }
 
@@ -66,14 +78,11 @@ function create(config = {}) {
     }
 
     if (useProxy) {
-      let proxy =  new Proxy(fn, handlers);
-      proxy.before = add.bind(before);
-      proxy.after = add.bind(after);
-      return proxy;
+      return new Proxy(fn, handlers);
     }
 
-    wrapper.before = add.bind(before);
-    wrapper.after = add.bind(after);
+    wrapper.before = beforeFn;
+    wrapper.after = afterFn;
     return wrapper;
   }
 }
