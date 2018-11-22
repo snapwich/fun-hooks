@@ -9,7 +9,6 @@ function create(config = {}) {
     let handlers = {};
     let before = [];
     let after = [];
-    let trap;
 
     function generateTrap() {
       function chainCallbacks(hooks, name, code) {
@@ -44,16 +43,15 @@ function create(config = {}) {
               + chainCallbacks(after, 'a', 'z') + ' ))}')
           ].join(';');
         }
-        console.log(code);
-        trap = (new Function('b,a,t,h,g', code)).bind(null, before, after);
-        handlers.apply = trap;
+        handlers.apply = (new Function('b,a,t,h,g', code)).bind(null, before, after);
       } else {
         delete handlers.apply;
       }
     }
 
-    function wrapper(...args) {
-      return trap(fn, this, args)
+    function wrapper() {
+      let args = Array.prototype.slice.call(arguments);
+      return handlers.apply ? handlers.apply(fn, this, args) : fn.apply(this, args);
     }
 
     function add(fn, priority = 10) {
@@ -67,65 +65,17 @@ function create(config = {}) {
       }
     }
 
-    let methods = {
-      before: add.bind(before),
-      after: add.bind(after)
-    };
-
     if (useProxy) {
-      return Object.assign(new Proxy(fn, handlers), methods);
+      let proxy =  new Proxy(fn, handlers);
+      proxy.before = add.bind(before);
+      proxy.after = add.bind(after);
+      return proxy;
     }
 
-    return Object.assign(wrapper, methods);
+    wrapper.before = add.bind(before);
+    wrapper.after = add.bind(after);
+    return wrapper;
   }
 }
 
-let hookedFn = create()('async', function sum(a, b, cb) {
-  console.log('sum', [a, b]);
-  cb(a + b, 1);
-});
-
-hookedFn.before(function before1(cb, a, b) {
-  console.log("before1", [a, b]);
-  a++;
-  cb.apply(this, [a, b]);
-});
-
-hookedFn.before(function before2(cb, a, b) {
-  console.log("before2", [a, b]);
-  a++;
-  cb.apply(this, [a, b]);
-});
-
-hookedFn.before(function before3(cb, a, b) {
-  console.log("before3", [a, b]);
-  a++;
-  cb.apply(this, [a, b]);
-});
-
-hookedFn.after(function after1(cb, a, b) {
-  console.log("after1", [a, b]);
-  a++;
-  cb.apply(this, [a, b]);
-});
-
-hookedFn.after(function after2(cb, a, b) {
-  console.log("after2", [a, b]);
-  a++;
-  cb.apply(this, [a, b]);
-});
-
-hookedFn.after(function after3(cb, a, b) {
-  console.log("after3", [a, b]);
-  a++;
-  cb.apply(this, [a, b]);
-});
-
-
-let result = hookedFn(1, 2, function(a, b) {
-  console.log('result', [a, b]);
-});
-
-
-
-// module.exports = create;
+module.exports = create;
