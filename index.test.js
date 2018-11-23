@@ -1,4 +1,6 @@
 
+"use strict";
+
 let create = require('./index.js');
 let util = require('util');
 
@@ -135,9 +137,11 @@ test('honors config.useProxy', () => {
 
   test(n('calls hooks on async hooked fn'), () => {
     let result;
-    let cb = jest.fn((a, b) => result = a + b);
+    let cb = jest.fn(function(a, b) {
+      result = a + b
+    });
 
-    let asyncFn = jest.fn((a, b, cb) => {
+    let asyncFn = jest.fn(function(a, b, cb) {
       cb(a + 1, b +1);
     });
 
@@ -213,5 +217,47 @@ test('honors config.useProxy', () => {
     expect(asyncFn).toBeCalled();
     expect(cb).toBeCalled();
     expect(result).toEqual(11);
-  })
+  });
+
+  test(n('calls before hooks on async hooked fn without callback'), () => {
+    let asyncFn = jest.fn();
+
+    let hookedAsyncFn = hook('async', asyncFn);
+    let before = genHooks(3);
+    hookedAsyncFn.before(before[0]);
+    hookedAsyncFn(1, 2);
+    expectCalled(before, 1);
+    expect(asyncFn).toBeCalledWith(2, 3);
+
+    hookedAsyncFn.before(before[1]);
+    hookedAsyncFn(1, 2);
+    expectCalled(before, 2);
+    expect(asyncFn).toBeCalledWith(3, 4);
+
+    hookedAsyncFn.before(before[2]);
+    hookedAsyncFn(1, 2);
+    expectCalled(before, 3);
+    expect(asyncFn).toBeCalledWith(4, 5);
+  });
+
+  test(n('calls before hooks on async hooked fn without callback'), () => {
+    let asyncFn = jest.fn();
+
+    let hookedAsyncFn = hook('async', asyncFn);
+    let before = genHooks(3);
+    hookedAsyncFn.before(before[0]);
+    hookedAsyncFn(1, 2);
+    expectCalled(before, 1);
+    expect(asyncFn).toBeCalledWith(2, 3);
+
+    hookedAsyncFn.before(before[1]);
+    hookedAsyncFn(1, 2);
+    expectCalled(before, 2);
+    expect(asyncFn).toBeCalledWith(3, 4);
+
+    hookedAsyncFn.before(before[2]);
+    hookedAsyncFn(1, 2);
+    expectCalled(before, 3);
+    expect(asyncFn).toBeCalledWith(4, 5);
+  });
 });

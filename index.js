@@ -44,18 +44,18 @@ function create(config = {}) {
             afterCode = chainCallbacks(after, 'a', 'function extract(s){r=s}');
           }
           code = ['"use strict"', 'var r', beforeCode, afterCode, 'return r'].join(';');
-        } else if(type === 'async') {
+        } else if (type === 'async') {
           code = 't.apply(b,' +
             (before.length ?
             'Array.prototype.slice.call(arguments)' : // if we're wrapped in partial, extract arguments
             'g')                                       // otherwise, we can just use passed in arguments
-            + '.concat(' + chainCallbacks(after, 'a', 'z') + '))';
+            + '.concat(' + chainCallbacks(after, 'a', 'z||[]') + '))';
           if (before.length) {
             code = 'function partial(){' + code + '}';
           }
           code = [
             '"use strict"',
-            'let z=g.pop()',
+            'var z;typeof g[g.length-1]=="function"&&(z=g.pop())',
             chainCallbacks(before, 'b', code)
           ].join(';');
         }
