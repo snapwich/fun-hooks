@@ -70,7 +70,7 @@ function create(config = {}) {
       this.push(entry);
       this.sort((a, b) => b.priority - a.priority);
       generateTrap();
-      return function () {
+      return () => {
         this.splice(this.indexOf(entry), 1);
         generateTrap();
       }
