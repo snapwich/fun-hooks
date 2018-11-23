@@ -12,14 +12,10 @@ function create(config = {}) {
     let afterFn = add.bind(after);
     let handlers = {
       get(target, prop, receiver) {
-        switch(prop) {
-          case 'before':
-            return beforeFn;
-          case 'after':
-            return afterFn;
-          default:
-            return Reflect.get(...arguments)
-        }
+        return {
+          before: beforeFn,
+          after: afterFn
+        }[prop] || Reflect.get(...arguments);
       }
     };
 
@@ -49,21 +45,24 @@ function create(config = {}) {
           }
           code = ['"use strict"', 'var r', beforeCode, afterCode, 'return r'].join(';');
         } else if(type === 'async') {
+          code = 't.apply(b,' +
+            (before.length ?
+            'Array.prototype.slice.call(arguments)' : // if we're wrapped in partial, extract arguments
+            'g')                                       // otherwise, we can just use passed in arguments
+            + '.concat(' + chainCallbacks(after, 'a', 'z') + '))';
+          if (before.length) {
+            code = 'function partial(){' + code + '}';
+          }
           code = [
             '"use strict"',
             'let z=g.pop()',
-            chainCallbacks(before, 'b', 'function partial(){t.apply(b,Array.prototype.slice.call(arguments).concat('
-              + chainCallbacks(after, 'a', 'z') + ' ))}')
+            chainCallbacks(before, 'b', code)
           ].join(';');
         }
         handlers.apply = (new Function('b,a,t,h,g', code)).bind(null, before, after);
       } else {
         delete handlers.apply;
       }
-    }
-
-    function wrapper(...args) {
-      return handlers.apply ? handlers.apply(fn, this, args) : fn.apply(this, args);
     }
 
     function add(fn, priority = 10) {
@@ -81,6 +80,9 @@ function create(config = {}) {
       return new Proxy(fn, handlers);
     }
 
+    let wrapper = function(...args) {
+      return handlers.apply ? handlers.apply(fn, this, args) : fn.apply(this, args);
+    };
     wrapper.before = beforeFn;
     wrapper.after = afterFn;
     return wrapper;
