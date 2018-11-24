@@ -1,20 +1,33 @@
 const hasProxy = typeof Proxy === 'function';
 
 function create(config = {}) {
-  let hooks = new Map();
-
+  let hooks = {};
   let useProxy = typeof config.useProxy !== 'undefined' ? config.useProxy : hasProxy;
 
-  return function dispatch(arg1, arg2) {
+  function dispatch(arg1, arg2) {
     if (typeof arg1 === 'function') {
       return hookFn.call(null, 'sync', arg1, arg2);
     } else if (typeof arg1 === 'string' && typeof arg2 === 'function') {
       return hookFn.apply(null, arguments);
+    } else if (typeof arg1 === 'object') {
+      return hookObj.apply(null, arguments);
     }
-  };
+  }
 
-  function hookObj(obj, syncProps = Object.keys(obj), asyncProps) {
-
+  function hookObj(obj, props = Object.getOwnPropertyNames(obj), objName) {
+    let objHooks = {};
+    let doNotHook = [
+      'constructor'
+    ];
+    props = props.filter(prop => typeof obj[prop] === 'function' && !doNotHook.includes(prop) && !prop.match(/^_/));
+    props.forEach(prop => {
+      let [name, type = 'sync'] = prop.split(':');
+      objHooks[name] = obj[name] = hookFn(type, obj[name]);
+    });
+    if (objName) {
+      hooks[objName] = objHooks;
+    }
+    return objHooks;
   }
 
   function hookFn(type, fn, name) {
@@ -88,17 +101,25 @@ function create(config = {}) {
       }
     }
 
+    let hook;
     if (useProxy) {
-      return new Proxy(fn, handlers);
+      hook =  new Proxy(fn, handlers);
+    } else {
+      hook = function(...args) {
+        return handlers.apply ? handlers.apply(fn, this, args) : fn.apply(this, args);
+      };
+      hook.before = beforeFn;
+      hook.after = afterFn;
     }
 
-    let wrapper = function(...args) {
-      return handlers.apply ? handlers.apply(fn, this, args) : fn.apply(this, args);
-    };
-    wrapper.before = beforeFn;
-    wrapper.after = afterFn;
-    return wrapper;
+    if (name) {
+      hooks[name] = hook;
+    }
+    return hook;
   }
+
+  dispatch.hooks = hooks;
+  return dispatch;
 }
 
 module.exports = create;
