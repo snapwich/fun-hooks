@@ -39,7 +39,8 @@ function create(config = {}) {
       get(target, prop, receiver) {
         return {
           before: beforeFn,
-          after: afterFn
+          after: afterFn,
+          fn: fn
         }[prop] || Reflect.get(...arguments);
       }
     };
@@ -110,6 +111,7 @@ function create(config = {}) {
       };
       hook.before = beforeFn;
       hook.after = afterFn;
+      hook.fn = fn;
     }
 
     if (name) {

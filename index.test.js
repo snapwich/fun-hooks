@@ -19,6 +19,17 @@ test('honors config.useProxy', () => {
   expect(util.types.isProxy(noProxyHook)).toEqual(false);
 });
 
+test('exposes named hooks', () => {
+  let hook = create();
+  let hooked1 = hook('sync', jest.fn(), 'hooked1');
+  let hooked2 = hook('async', jest.fn(), 'hooked2');
+
+  expect(hook.hooks).toEqual({
+    hooked1,
+    hooked2
+  });
+});
+
 [true, false].forEach(useProxy => {
   let hook = create({
     useProxy
@@ -392,5 +403,25 @@ test('honors config.useProxy', () => {
     hookedAsyncFn(callback);
 
     expect(order).toEqual([1, 2, 3, 4, 'fn', 5, 6, 7, 8, 9])
+  });
+
+  test(n('allows hooking objects'), () => {
+    let obj = {
+      someFun() {},
+      someFun2() {},
+      someFun3() {}
+    };
+    let hooks = hook(obj, ['someFun', 'someFun2'], 'myObj');
+
+    expect(hooks['someFun']).toEqual(obj.someFun);
+    expect(typeof obj.someFun.before).toEqual('function');
+    expect(typeof obj.someFun.after).toEqual('function');
+    expect(hooks['someFun2']).toEqual(obj.someFun2);
+    expect(typeof obj.someFun2.before).toEqual('function');
+    expect(typeof obj.someFun2.after).toEqual('function');
+    expect(obj.someFun3.before).toBeUndefined();
+    expect(obj.someFun3.after).toBeUndefined();
+
+    expect(hook.hooks.myObj).toEqual(hooks);
   });
 });
