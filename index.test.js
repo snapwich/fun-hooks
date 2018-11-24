@@ -72,6 +72,21 @@ test('honors config.useProxy', () => {
     expect(cb).toBeCalledWith(1, 2, 3);
   });
 
+  test(n('assumes sync if not specified'), () => {
+    let syncFn = jest.fn((a, b) => a + b);
+
+    let hookedSyncFn = hook(syncFn);
+    let result;
+
+    let before = genHooks(3);
+
+    hookedSyncFn.before(before[0]);
+    result = hookedSyncFn(1, 2);
+    expectCalled(before, 1);
+    expect(syncFn).toBeCalled();
+    expect(result).toEqual(5);
+  });
+
   test(n('calls all hooks on sync hooked fn'), () => {
     let syncFn = jest.fn((a, b) => a + b);
 
@@ -312,7 +327,6 @@ test('honors config.useProxy', () => {
     expect(cb).toBeCalled();
     expect(result).toEqual(13);
 
-
     clearMocks(before, after);
     removeAfter();
     hookedAsyncFn(1, 2, cb);
@@ -330,5 +344,53 @@ test('honors config.useProxy', () => {
     expect(asyncFn).toBeCalled();
     expect(cb).toBeCalled();
     expect(result).toEqual(9);
+  });
+
+  test(n('hooks run in correct priority order'), () => {
+    let order = [];
+    let callback = () => order.push(9);
+
+    let asyncFn = jest.fn(function (cb) {
+      order.push('fn');
+      cb();
+    });
+
+    let hookedAsyncFn = hook('async', asyncFn);
+    hookedAsyncFn.before(function(next) {
+      order.push(2);
+      next();
+    });
+    hookedAsyncFn.before(function(next) {
+      order.push(1);
+      next()
+    }, 11);
+    hookedAsyncFn.before(function(next) {
+      order.push(3);
+      next();
+    });
+    hookedAsyncFn.before(function(next) {
+      order.push(4);
+      next();
+    });
+    hookedAsyncFn.after(function(next) {
+      order.push(7);
+      next();
+    });
+    hookedAsyncFn.after(function(next) {
+      order.push(8);
+      next();
+    });
+    hookedAsyncFn.after(function(next) {
+      order.push(6);
+      next();
+    }, 12);
+    hookedAsyncFn.after(function(next) {
+      order.push(5);
+      next();
+    }, 13);
+
+    hookedAsyncFn(callback);
+
+    expect(order).toEqual([1, 2, 3, 4, 'fn', 5, 6, 7, 8, 9])
   });
 });
