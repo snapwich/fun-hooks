@@ -5,7 +5,19 @@ function create(config = {}) {
 
   let useProxy = typeof config.useProxy !== 'undefined' ? config.useProxy : hasProxy;
 
-  return function hook(type, fn, name) {
+  return function dispatch(arg1, arg2) {
+    if (typeof arg1 === 'function') {
+      return hookFn.call(null, 'sync', arg1, arg2);
+    } else if (typeof arg1 === 'string' && typeof arg2 === 'function') {
+      return hookFn.apply(null, arguments);
+    }
+  };
+
+  function hookObj(obj, syncProps = Object.keys(obj), asyncProps) {
+
+  }
+
+  function hookFn(type, fn, name) {
     let before = [];
     let after = [];
     let beforeFn = add.bind(before);
