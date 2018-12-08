@@ -46,13 +46,16 @@ function create(config = {}) {
     };
 
     function generateTrap() {
-      function chainCallbacks(hooks, name, code) {
+      function chainHooks(hooks, name, code) {
         for (let i = hooks.length; i-- > 0;) {
           if (i === 0 && !(type === 'async' && name ==='a')) {
             code = name + '[' + i + '].fn.apply(h,[' + code +
               (name === 'b' ? '].concat(g))' : ',r])');
           } else {
-            code = 'n(' + name + '[' + i + '].fn.bind(h,' + code + '),e)';
+            code = name + '[' + i + '].fn.bind(h,' + code + ')';
+            if (!(type === 'async' && name === 'a' && i === 0)) {
+              code = 'n(' + code + ',e)';
+            }
           }
         }
         return code;
@@ -64,10 +67,10 @@ function create(config = {}) {
           let beforeCode = 'r=t.apply(h,' + (before.length ? 'arguments' : 'g') + ')';
           let afterCode;
           if (after.length) {
-            afterCode = chainCallbacks(after, 'a', 'n(function extract(s){r=s},e)');
+            afterCode = chainHooks(after, 'a', 'n(function extract(s){r=s},e)');
           }
           if (before.length) {
-            beforeCode = chainCallbacks(before, 'b', 'n(function extract(){' + beforeCode + ';' + afterCode + '},e)');
+            beforeCode = chainHooks(before, 'b', 'n(function extract(){' + beforeCode + ';' + afterCode + '},e)');
             afterCode = '';
           }
           code = [
@@ -81,18 +84,25 @@ function create(config = {}) {
             (before.length ?
             'Array.prototype.slice.call(arguments)' : // if we're wrapped in partial, extract arguments
             'g')                                       // otherwise, we can just use passed in arguments
-            + '.concat(' + chainCallbacks(after, 'a', 'z||[]') + '))';
+            + '.concat(' + chainHooks(after, 'a', 'z?n(z,e):[]') + '))';
           if (before.length) {
             code = 'n(function partial(){' + code + '},e)';
           }
           code = [
-            'var z;typeof g[g.length-1]=="function"&&(z=g.pop())',
-            'var e={bail:z||function(){}}',
-            chainCallbacks(before, 'b', code)
+            'var z',
+            'typeof g[g.length-1]==="function"&&(z=g.pop().bind(null))',
+            'var e={bail:z}',
+            chainHooks(before, 'b', code)
           ].join(';');
         }
         handlers.apply = (new Function('b,a,n,t,h,g', code))
-          .bind(null, before, after, Object.assign || function assignBail(fn, obj) {fn.bail = obj.bail; return fn});
+          .bind(null, before, after, Object.assign ||
+            function assignBail(fn, obj) {
+              if (fn) {
+                fn.bail = obj.bail;
+                return fn
+              }
+            });
       } else {
         delete handlers.apply;
       }

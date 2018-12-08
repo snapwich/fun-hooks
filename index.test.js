@@ -267,27 +267,80 @@ test('exposes named hooks', () => {
     expect(result).toEqual(11);
   });
 
-  test.only(n('allows bailing early using cb.bail'), () => {
+  test(n('allows bailing early using cb.bail'), () => {
     let result;
     let cb = jest.fn((a, b) => result = a + b);
 
     let asyncFn = jest.fn((a, b, cb) => cb(a + 1, b +1));
     let syncFn = jest.fn((a, b) => a + b);
 
-    let hookedAsyncFn = hook('async', asyncFn);
     let hookedSyncFn = hook('sync', syncFn);
-
-    hookedSyncFn.before(cb => cb.bail(9), 10);
+    hookedSyncFn.after((cb, x) => cb.bail(x + 1));
     result = hookedSyncFn(1, 2);
-    expect(syncFn).not.toBeCalled();
+    expect(result).toEqual(4);
+
+    hookedSyncFn.after((cb, x) => cb.bail(x + 2), 11);
+    result = hookedSyncFn(1, 2);
+    expect(result).toEqual(5);
+
+    hookedSyncFn.after((cb, x) => cb.bail(x + 3), 12);
+    result = hookedSyncFn(1, 2);
+    expect(result).toEqual(6);
+
+    hookedSyncFn.before(cb => cb.bail(4), 13);
+    result = hookedSyncFn(1, 2);
+    expect(result).toEqual(4);
+
+    hookedSyncFn.before(cb => cb.bail(5), 14);
+    result = hookedSyncFn(1, 2);
+    expect(result).toEqual(5);
+
+    hookedSyncFn.before(cb => cb.bail(6), 15);
+    result = hookedSyncFn(1, 2);
+    expect(result).toEqual(6);
+
+    let hookedAsyncFn = hook('async', asyncFn);
+    hookedAsyncFn.after((cb, x, y) => cb.bail(x + 1, y + 1));
+    hookedAsyncFn(1, 2, cb);
+    expect(result).toEqual(7);
+
+    hookedAsyncFn.after((cb, x, y) => cb.bail(x + 2, y + 2), 11);
+    hookedAsyncFn(1, 2, cb);
     expect(result).toEqual(9);
 
-    hookedAsyncFn.before(cb => cb.bail(9, 10), 10);
+    hookedAsyncFn.after((cb, x, y) => cb.bail(x + 3, y + 3), 12);
     hookedAsyncFn(1, 2, cb);
-    expect(asyncFn).not.toBeCalled();
-    expect(cb).toBeCalled();
-    expect(result).toEqual(19);
+    expect(result).toEqual(11);
 
+    hookedAsyncFn.before((cb, x, y) => cb.bail(x + 4, y + 4), 13);
+    hookedAsyncFn(1, 2, cb);
+    expect(result).toEqual(11); // only 11 because we bail before hooked fn now
+
+    hookedAsyncFn.before((cb, x, y) => cb.bail(x + 5, y + 5), 14);
+    hookedAsyncFn(1, 2, cb);
+    expect(result).toEqual(13);
+
+    hookedAsyncFn.before((cb, x, y) => cb.bail(x + 6, y + 6), 15);
+    hookedAsyncFn(1, 2, cb);
+    expect(result).toEqual(15);
+  });
+
+  test(n('callback to wrapped async fn should not have bail attached'), () => {
+    let result;
+    let cb = jest.fn((a, b) => result = a + b);
+    let asyncFn = jest.fn((a, b, cb) => {
+      expect(cb.bail).toBeUndefined();
+    });
+
+    let hookedAsyncFn = hook('async', asyncFn);
+
+    hookedAsyncFn(1, 2, cb);
+
+    hookedAsyncFn.after((cb, x, y) => cb.bail(x + 1, y + 1));
+    hookedAsyncFn(1, 2, cb);
+
+    hookedAsyncFn.before((cb, x, y) => cb.bail(x + 1, y + 1));
+    hookedAsyncFn(1, 2, cb);
   });
 
   test(n('calls before hooks on async hooked fn without callback'), () => {
