@@ -52,7 +52,7 @@ function create(config = {}) {
             code = name + '[' + i + '].fn.apply(h,[' + code +
               (name === 'b' ? '].concat(g))' : ',r])');
           } else {
-            code = name + '[' + i + '].fn.bind(h,' + code + ')';
+            code = 'n(' + name + '[' + i + '].fn.bind(h,' + code + '),e)';
           }
         }
         return code;
@@ -63,13 +63,19 @@ function create(config = {}) {
         if (type === 'sync') {
           let beforeCode = 'r=t.apply(h,' + (before.length ? 'arguments' : 'g') + ')';
           let afterCode;
-          if (before.length) {
-            beforeCode = chainCallbacks(before, 'b', 'function extract(){' + beforeCode + '}');
-          }
           if (after.length) {
-            afterCode = chainCallbacks(after, 'a', 'function extract(s){r=s}');
+            afterCode = chainCallbacks(after, 'a', 'n(function extract(s){r=s},e)');
           }
-          code = ['"use strict"', 'var r', beforeCode, afterCode, 'return r'].join(';');
+          if (before.length) {
+            beforeCode = chainCallbacks(before, 'b', 'n(function extract(){' + beforeCode + ';' + afterCode + '},e)');
+            afterCode = '';
+          }
+          code = [
+            'var r,e={bail:function(a){r=a}}',
+            beforeCode,
+            afterCode,
+            'return r'
+          ].join(';');
         } else if (type === 'async') {
           code = 't.apply(b,' +
             (before.length ?
@@ -77,15 +83,16 @@ function create(config = {}) {
             'g')                                       // otherwise, we can just use passed in arguments
             + '.concat(' + chainCallbacks(after, 'a', 'z||[]') + '))';
           if (before.length) {
-            code = 'function partial(){' + code + '}';
+            code = 'n(function partial(){' + code + '},e)';
           }
           code = [
-            '"use strict"',
             'var z;typeof g[g.length-1]=="function"&&(z=g.pop())',
+            'var e={bail:z||function(){}}',
             chainCallbacks(before, 'b', code)
           ].join(';');
         }
-        handlers.apply = (new Function('b,a,t,h,g', code)).bind(null, before, after);
+        handlers.apply = (new Function('b,a,n,t,h,g', code))
+          .bind(null, before, after, Object.assign || function assignBail(fn, obj) {fn.bail = obj.bail; return fn});
       } else {
         delete handlers.apply;
       }

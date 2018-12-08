@@ -267,6 +267,29 @@ test('exposes named hooks', () => {
     expect(result).toEqual(11);
   });
 
+  test.only(n('allows bailing early using cb.bail'), () => {
+    let result;
+    let cb = jest.fn((a, b) => result = a + b);
+
+    let asyncFn = jest.fn((a, b, cb) => cb(a + 1, b +1));
+    let syncFn = jest.fn((a, b) => a + b);
+
+    let hookedAsyncFn = hook('async', asyncFn);
+    let hookedSyncFn = hook('sync', syncFn);
+
+    hookedSyncFn.before(cb => cb.bail(9), 10);
+    result = hookedSyncFn(1, 2);
+    expect(syncFn).not.toBeCalled();
+    expect(result).toEqual(9);
+
+    hookedAsyncFn.before(cb => cb.bail(9, 10), 10);
+    hookedAsyncFn(1, 2, cb);
+    expect(asyncFn).not.toBeCalled();
+    expect(cb).toBeCalled();
+    expect(result).toEqual(19);
+
+  });
+
   test(n('calls before hooks on async hooked fn without callback'), () => {
     let asyncFn = jest.fn();
 
