@@ -1,5 +1,7 @@
 const hasProxy = typeof Proxy === 'function';
 
+let baseObj = Object.getPrototypeOf({});
+
 function create(config = {}) {
   let hooks = {};
   let useProxy = typeof config.useProxy !== 'undefined' ? config.useProxy : hasProxy;
@@ -19,11 +21,17 @@ function create(config = {}) {
     let doNotHook = [
       'constructor'
     ];
-    props = props.filter(prop => typeof obj[prop] === 'function' && !doNotHook.includes(prop) && !prop.match(/^_/));
-    props.forEach(prop => {
-      let [name, type = 'sync'] = prop.split(':');
-      objHooks[name] = obj[name] = hookFn(type, obj[name]);
-    });
+    do {
+      props = props.filter(prop => typeof obj[prop] === 'function' && !doNotHook.includes(prop) && !prop.match(/^_/));
+      props.forEach(prop => {
+        let [name, type = 'sync'] = prop.split(':');
+        if (!objHooks[name]) {
+          let fn = obj[name];
+          objHooks[name] = obj[name] = fn.__funHook ? fn : hookFn(type, fn);
+        }
+      });
+      obj = Object.getPrototypeOf(obj);
+    } while(obj !== baseObj);
     if (objName) {
       hooks[objName] = objHooks;
     }
@@ -38,6 +46,7 @@ function create(config = {}) {
     let handlers = {
       get(target, prop, receiver) {
         return {
+          __funHook: true,
           before: beforeFn,
           after: afterFn,
           fn: fn
@@ -121,11 +130,12 @@ function create(config = {}) {
 
     let hook;
     if (useProxy) {
-      hook =  new Proxy(fn, handlers);
+      hook = new Proxy(fn, handlers);
     } else {
       hook = function(...args) {
         return handlers.apply ? handlers.apply(fn, this, args) : fn.apply(this, args);
       };
+      hook.__funHook = true;
       hook.before = beforeFn;
       hook.after = afterFn;
       hook.fn = fn;

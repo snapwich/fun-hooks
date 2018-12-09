@@ -481,13 +481,16 @@ test('exposes named hooks', () => {
     expect(order).toEqual([1, 2, 3, 4, 'fn', 5, 6, 7, 8, 9])
   });
 
-  test(n('allows hooking objects'), () => {
-    let obj = {
+  test(n('allows hooking objects (and prototypes)'), () => {
+    let obj = Object.create({
       someFun() {},
       someFun2() {},
       someFun3() {}
-    };
-    let hooks = hook(obj, ['someFun', 'someFun2'], 'myObj');
+    });
+    obj.someFun4 = function() {};
+    obj.someFun5 = function() {};
+
+    let hooks = hook(obj, ['someFun', 'someFun2', 'someFun4'], 'myObj');
 
     expect(hooks['someFun']).toEqual(obj.someFun);
     expect(typeof obj.someFun.before).toEqual('function');
@@ -497,6 +500,11 @@ test('exposes named hooks', () => {
     expect(typeof obj.someFun2.after).toEqual('function');
     expect(obj.someFun3.before).toBeUndefined();
     expect(obj.someFun3.after).toBeUndefined();
+    expect(hooks['someFun4']).toEqual(obj.someFun4);
+    expect(typeof obj.someFun4.before).toEqual('function');
+    expect(typeof obj.someFun4.after).toEqual('function');
+    expect(obj.someFun5.before).toBeUndefined();
+    expect(obj.someFun5.after).toBeUndefined();
 
     expect(hook.hooks.myObj).toEqual(hooks);
   });
