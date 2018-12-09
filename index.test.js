@@ -508,4 +508,11 @@ test('exposes named hooks', () => {
 
     expect(hook.hooks.myObj).toEqual(hooks);
   });
+
+  test(n('will not wrap hooks more than once'), () => {
+    let fn = () => {};
+    let hookedFn = hook(fn);
+    let hookedFn2 = hook(hookedFn);
+    expect(hookedFn).toEqual(hookedFn2);
+  });
 });

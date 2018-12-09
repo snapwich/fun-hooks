@@ -27,7 +27,7 @@ function create(config = {}) {
         let [name, type = 'sync'] = prop.split(':');
         if (!objHooks[name]) {
           let fn = obj[name];
-          objHooks[name] = obj[name] = fn.__funHook ? fn : hookFn(type, fn);
+          objHooks[name] = obj[name] = hookFn(type, fn);
         }
       });
       obj = Object.getPrototypeOf(obj);
@@ -39,6 +39,17 @@ function create(config = {}) {
   }
 
   function hookFn(type, fn, name) {
+    if (fn.__funHook) {
+      if (fn.__funHook === type) {
+        if (name) {
+          hooks[name] = fn;
+        }
+        return fn;
+      } else {
+        throw 'attempting to wrap func with different hook types';
+      }
+    }
+
     let before = [];
     let after = [];
     let beforeFn = add.bind(before);
@@ -46,7 +57,7 @@ function create(config = {}) {
     let handlers = {
       get(target, prop, receiver) {
         return {
-          __funHook: true,
+          __funHook: type,
           before: beforeFn,
           after: afterFn,
           fn: fn
@@ -135,7 +146,7 @@ function create(config = {}) {
       hook = function(...args) {
         return handlers.apply ? handlers.apply(fn, this, args) : fn.apply(this, args);
       };
-      hook.__funHook = true;
+      hook.__funHook = type;
       hook.before = beforeFn;
       hook.after = afterFn;
       hook.fn = fn;
