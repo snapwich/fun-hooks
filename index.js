@@ -100,7 +100,7 @@ function create(config = {}) {
             'return r'
           ].join(';');
         } else if (type === 'async') {
-          code = 't.apply(b,' +
+          code = 't.apply(h,' +
             (before.length ?
             'Array.prototype.slice.call(arguments)' : // if we're wrapped in partial, extract arguments
             'g')                                       // otherwise, we can just use passed in arguments

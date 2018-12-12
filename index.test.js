@@ -433,6 +433,42 @@ test('exposes named hooks', () => {
     expect(result).toEqual(9);
   });
 
+  test(n('hooks have correct bound context'), () => {
+
+    let fnThis = {};
+    let beforeThis = {};
+    let afterThis = {};
+
+    let asyncFn = function (cb) {
+      expect(this).toEqual(fnThis);
+      cb();
+    };
+
+    let hookedAsyncFn = hook('async', asyncFn);
+
+    hookedAsyncFn.before(function(cb) {
+      expect(this).toEqual(fnThis);
+      cb();
+    });
+
+    hookedAsyncFn.after(function(cb) {
+      expect(this).toEqual(fnThis);
+      cb();
+    });
+
+    hookedAsyncFn.before((function(cb) {
+      expect(this).toEqual(beforeThis);
+      cb();
+    }).bind(beforeThis));
+
+    hookedAsyncFn.after((function(cb) {
+      expect(this).toEqual(afterThis);
+      cb();
+    }).bind(afterThis));
+
+    hookedAsyncFn.bind(fnThis)(function() {});
+  });
+
   test(n('hooks run in correct priority order'), () => {
     let order = [];
     let callback = () => order.push(9);
