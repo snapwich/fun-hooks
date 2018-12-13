@@ -16,7 +16,12 @@ function create(config = {}) {
     }
   }
 
-  function hookObj(obj, props = Object.getOwnPropertyNames(obj), objName) {
+  function hookObj(obj, props, objName) {
+    let walk = true;
+    if (typeof props === 'undefined') {
+      props = Object.getOwnPropertyNames(obj);
+      walk = false;
+    }
     let objHooks = {};
     let doNotHook = [
       'constructor'
@@ -31,7 +36,7 @@ function create(config = {}) {
         }
       });
       obj = Object.getPrototypeOf(obj);
-    } while(obj !== baseObj);
+    } while(walk && obj !== baseObj);
     if (objName) {
       hooks[objName] = objHooks;
     }
