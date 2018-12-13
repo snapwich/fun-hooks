@@ -1,14 +1,14 @@
 {
   "name": "fun-hooks",
-  "version": "1.0.0",
-  "description": "",
+  "version": "0.0.1",
+  "description": "A generalized and simple hooking API for adding extensibility to applications",
   "main": "index.js",
   "scripts": {
     "test": "jest",
     "test:debug": "node --inspect-brk ./node_modules/jest/bin/jest.js --runInBand ."
   },
-  "author": "",
-  "license": "ISC",
+  "author": "Rich Snapp @snapwich",
+  "license": "MIT",
   "devDependencies": {
     "babel-preset-env": "^1.7.0",
     "jest": "^23.6.0"
