@@ -221,7 +221,7 @@ myThing.getValue.after(function(next) {
 console.log(myThing.getValue()); // 2
 ```
 
-_Noted: `hook` will also walk the prototype chain and find `getValue` if it were an inherited method._
+_Note: `hook` will also walk the prototype chain and find `getValue` if it were an inherited method._
 
 If `['setValue', 'getValue']` were omitted then `hook` would hook the results of
 `Object.getOwnPropertyNames(Thing.prototype)` excluding `constructor` and any methods marked private with a preceding
