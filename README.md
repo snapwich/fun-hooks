@@ -23,8 +23,8 @@ it's important to remember that `sync` `after` hooks act on the _return_ result 
 _callback's_ arguments.
 
 #### Configuration
-  - **useProxy** : boolean - (Default: **true**) Whether to use `Proxy` or a wrapper function for hooked functions.  _Note_: if 
-  `Proxy` is unavailable then the library will automatically fallback to using wrapper functions.
+  - **useProxy** : boolean - (Default: **true**) Whether to use `Proxy` or a wrapper function for hooked functions.  
+  _Note: if `Proxy` is unavailable then the library will automatically fallback to using wrapper functions._
 ```javascript
 import configureHook from 'fun-hooks';    // babel (using webpack or such)
 let configureHook = require('fun-hooks'); // or in node
@@ -58,20 +58,18 @@ let result = hookedSum(1, 1);
 console.log(result); // 4
 ```
 
-_Note:_ You should always use `sync` if you are returning a value.  This includes if you are returning a `Promise`.  
-Also, if you're hooking a function with `sync` your hooks should all call `next` synchronously (e.g. no ajax) so as 
+_Note: You should always use `sync` if you are returning a value.  This includes if you are returning a `Promise`.  
+Also, if you're hooking a function with `sync` your hooks should all call `next` synchronously (e.g. no ajax) so that 
 your value can be returned.  If you asynchronously call `next` in a `sync` hook then the return value will be 
-`undefined`.
+`undefined`._
 
 #### Async (`before`, `after`)
 ```javascript
-let hook = require('fun-hooks');
-
 function increment(a, b, callback) {
   callback(a + 1, b + 1);
 }
 
-let hookedIncrement = createHook('async', sum);
+let hookedIncrement = createHook('async', increment);
 
 // async `before` hooks accept the arguments to sum, and `next` passes the arguments to the next `before` hook or sum (same as sync)
 hookedIncrement.before(function(next, a, b) {
@@ -91,11 +89,28 @@ hookedIncrement(1, 1, function(a, b) {
 ```
 
 You'll notice no difference above in `sync` or `async` with the `before` hooks, but the `after` hooks are dealing with 
-the `callback`'s arguments in one case and the return result (which will always be one value) in the other.
+the `callback`'s parameters in one case and the return result (which will always be a single value) in the other.
+
+#### Removing a hook
+When a hook is created, a removal function is returned.  Calling the function will remove the hook.
+```javascript
+function beforeHook() {
+  console.log("called");
+}
+
+let removeHook = hookedSum.before(beforeHook);
+
+hookedSum(1, 1); // "called"
+
+removeHook();
+
+hookedSum(1, 1); // hook not called
+```
 
 #### Priority
 You can attach as many `before` or `after` hooks as you'd like to a function.  The order in which the hooks are ran is
-dependant on an optional `priority` argument set when creating the hook (which defaults to `10` if not set).
+dependant on the order they're added or an optional `priority` argument set when creating the hook (which defaults 
+to a priority of `10`).
 
 ```javascript
 hookedSum.before(beforeHook1);
@@ -129,7 +144,7 @@ hookedIncrement(1, 1, function callback(a, b) {}); // hookedIncrement -> bailHoo
 
 If you want to bail completely (i.e. not even call the callback) then just don't call `next`.
 
-#### Side-effects
+#### Side-effect (or pass-through) only hooks
 If you want to have a hook that just performs some side-effect before or after the hooked function but does not modify 
 arguments, just call `next` and pass-through the arguments without modifying them.  It's important that `next` is
 still called with the original arguments so that the hook-chain can continue.
@@ -142,22 +157,25 @@ hookedIncrement.before(function sideEffect(next, ...args) {
 ```
 
 #### Naming
-Hooks can be given a name and then they will be exported onto a `.hooks` property.  This can be useful for defining the 
-extensible API for your application.  _Note:_ You can also just expose references to the hooked functions themselves, 
-this is just a convenience to group all those function references together.
+Hooks can be given a name and then they will be exported using the `.hooks` property.  This can be useful for defining the 
+extensible API for your application.  _Note: You can also just expose references to the hooked functions themselves, 
+this is just a convenience to group all those function references together._
 
 ```javascript
 // some-applicaiton
 import hookFactory from 'fun-hooks'; 
 let hook = hookFactory(); // default configuration
 
-hook('async', function getItem(id, cb) {
+function getItem(id, cb) {
   fetchItem(id).then(cb);
-}, 'item'); // naming this hook `item`
+}
 
-hook('sync', function getPrice(item) {
+function getPrice(item) {
   return item.price;
-}, 'price'); // naming this hook `price`
+}
+
+hook('async', getItem, 'item'); // naming this hook `item`
+hook('sync', getPrice, 'price'); // naming this hook `price`
 
 export const hooks = hook.hooks;
 
@@ -177,8 +195,8 @@ hooks.price.after(function currencyConversion(next, price) {
 
 #### Objects
 While functions are the base unit of extension in this library, there is a convenience provided to apply hooks to object
-methods if an object is passed to the hook creator. _Note:_ `this` will be bound correctly in the hooked function
-_as well as_ in the `before` and `after` hooks (i.e. `this` refers to object instance in hooks).
+methods if an object is passed to the hook creator. _Note: `this` will be bound correctly in the hooked function as well 
+as in the `before` and `after` hooks (i.e. `this` refers to the object instance inside hooks)._
 
 ```javascript
 class Thing {
@@ -195,18 +213,20 @@ class Thing {
 hook(Thing.prototype, ['setValue', 'getValue']);
 
 let myThing = new Thing();
+
 myThing.getValue.after(function(next) {
   next(2);
 });
+
 console.log(myThing.getValue()); // 2
 ```
 
-`hook` will also walk the prototype chain and find `getValue` if it were an inherited method.
+_Noted: `hook` will also walk the prototype chain and find `getValue` if it were an inherited method._
 
 If `['setValue', 'getValue']` were omitted then `hook` would hook the results of
 `Object.getOwnPropertyNames(Thing.prototype)` excluding `constructor` and any methods marked private with a preceding
-underscore (e.g. `_privateMethod() {}`).  Also, if omitted, `hook` will no longer walk the prototype chain to avoid
-accidental hooks.  
+underscore (e.g. `_privateMethod() {}`).  Also, if the list of methods to hook is omitted, `hook` will no longer walk 
+the prototype chain to avoid creating accidental hooks.  
 
 Hooked methods are all assumed to be `sync` unless otherwise specified.
 
@@ -249,16 +269,16 @@ allows the library to skip scaffolding code altogether if there are no hooks to 
 `wrappedFn()` invocation but no hooks have been attached, you'll step directly into your `wrappedFn` code.
 
 Finally, when you're stepping through your hooks or wrapped function code, the previously executed hooks will be still 
-be present in the stack since they are all immediately invoked by the previous hook as opposed to iteratively looped 
-through in scaffolding code and invoked individually.
+be present in the stack since they are all invoked by the previous hook as opposed to iteratively looped through in 
+scaffolding code and invoked individually.
 
-All of the above present a hooking environment that is much more pleasant to debug.
+All of the above creates a pleasant hooking environment that is much easier to debug.
 
 ### Performance
 Since most of the scaffolding code involved with function invocation has been avoided, this makes the execution of a 
-function and all its hooks extremely more efficient at the sake of a little more work when created the hook.
-Considering hooked functions (and their hooks) are usually invoked a lot more frequently than hooks are added/removed,
-I think this is a decent trade-off.
+function and all its hooks more efficient at the sake of a little more overhead when creating the hook. Considering 
+hooked functions (and their hooks) are usually invoked a lot more frequently than hooks are added/removed, I think 
+this is a decent trade-off.
 
 Proxy forwarding is also much more performant than a function wrapper* (in a browser; in Node.js that currently 
 doesn't seem to be the case, but will probably change as Proxies are further optimized).
