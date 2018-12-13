@@ -1,7 +1,7 @@
 # Fun Hooks
 ## Installation
 ```bash
-npm install fun-hooks --save
+npm install fun-hooks
 ```
 
 ## Motivation
