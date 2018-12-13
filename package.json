@@ -1,7 +1,16 @@
 {
   "name": "fun-hooks",
-  "version": "0.0.2",
+  "version": "0.0.3",
   "description": "A generalized and simple hooking API for adding extensibility to applications",
+  "keywords": [
+    "hooks",
+    "before",
+    "after",
+    "pre",
+    "post",
+    "wrapper",
+    "plugins"
+  ],
   "main": "index.js",
   "scripts": {
     "test": "jest",
