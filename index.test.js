@@ -1,5 +1,5 @@
 
-"use strict";
+'use strict';
 
 let create = require('./index.js');
 let util = require('util');
@@ -59,18 +59,18 @@ test('exposes named hooks', () => {
 
   function clearMocks(...arrs) {
     arrs.forEach(arr => {
-      arr.forEach(mock => mock.mockClear())
+      arr.forEach(mock => mock.mockClear());
     });
   }
 
   test(n('calls hooked sync fn with no hooks'), () => {
-      let syncFn = jest.fn().mockReturnValue(3);
-      let hookedSyncFn = hook('sync', syncFn);
+    let syncFn = jest.fn().mockReturnValue(3);
+    let hookedSyncFn = hook('sync', syncFn);
 
-      let value = hookedSyncFn(1, 2);
+    let value = hookedSyncFn(1, 2);
 
-      expect(syncFn).toBeCalledWith(1, 2);
-      expect(value).toEqual(3);
+    expect(syncFn).toBeCalledWith(1, 2);
+    expect(value).toEqual(3);
   });
 
   test(n('calls hooked async fn with no hooks'), () => {
@@ -178,7 +178,7 @@ test('exposes named hooks', () => {
   test(n('calls hooks on async hooked fn'), () => {
     let result;
     let cb = jest.fn(function(a, b) {
-      result = a + b
+      result = a + b;
     });
 
     let asyncFn = jest.fn(function(a, b, cb) {
@@ -326,8 +326,7 @@ test('exposes named hooks', () => {
   });
 
   test(n('callback to wrapped async fn should not have bail attached'), () => {
-    let result;
-    let cb = jest.fn((a, b) => result = a + b);
+    let cb = jest.fn((a, b) => a + b);
     let asyncFn = jest.fn((a, b, cb) => {
       expect(cb.bail).toBeUndefined();
     });
@@ -369,7 +368,7 @@ test('exposes named hooks', () => {
   test(n('hooks work correctly after removing'), () => {
     let result;
     let cb = jest.fn(function(a, b) {
-      result = a + b
+      result = a + b;
     });
 
     let asyncFn = jest.fn(function(a, b, cb) {
@@ -485,7 +484,7 @@ test('exposes named hooks', () => {
     });
     hookedAsyncFn.before(function(next) {
       order.push(1);
-      next()
+      next();
     }, 11);
     hookedAsyncFn.before(function(next) {
       order.push(3);
@@ -514,7 +513,7 @@ test('exposes named hooks', () => {
 
     hookedAsyncFn(callback);
 
-    expect(order).toEqual([1, 2, 3, 4, 'fn', 5, 6, 7, 8, 9])
+    expect(order).toEqual([1, 2, 3, 4, 'fn', 5, 6, 7, 8, 9]);
   });
 
   test(n('allows hooking objects (and prototypes)'), () => {

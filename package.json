@@ -14,7 +14,8 @@
   "main": "index.js",
   "scripts": {
     "test": "jest",
-    "test:debug": "node --inspect-brk ./node_modules/jest/bin/jest.js --runInBand ."
+    "test:debug": "node --inspect-brk ./node_modules/jest/bin/jest.js --runInBand .",
+    "lint": "eslint *.js"
   },
   "repository": {
     "type": "git",
@@ -24,6 +25,9 @@
   "license": "MIT",
   "devDependencies": {
     "babel-preset-env": "^1.7.0",
+    "eslint": "^5.10.0",
+    "eslint-plugin-import": "^2.14.0",
+    "eslint-plugin-jest": "^22.1.2",
     "jest": "^23.6.0"
   }
 }

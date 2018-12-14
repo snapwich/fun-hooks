@@ -60,7 +60,7 @@ function create(config = {}) {
     let beforeFn = add.bind(before);
     let afterFn = add.bind(after);
     let handlers = {
-      get(target, prop, receiver) {
+      get(target, prop) {
         return {
           __funHook: type,
           before: beforeFn,
@@ -107,8 +107,8 @@ function create(config = {}) {
         } else if (type === 'async') {
           code = 't.apply(h,' +
             (before.length ?
-            'Array.prototype.slice.call(arguments)' : // if we're wrapped in partial, extract arguments
-            'g')                                       // otherwise, we can just use passed in arguments
+              'Array.prototype.slice.call(arguments)' :   // if we're wrapped in partial, extract arguments
+              'g')                                        // otherwise, we can just use passed in arguments
             + '.concat(' + chainHooks(after, 'a', 'z?n(z,e):[]') + '))';
           if (before.length) {
             code = 'n(function partial(){' + code + '},e)';
@@ -125,7 +125,7 @@ function create(config = {}) {
             function assignBail(fn, obj) {
               if (fn) {
                 fn.bail = obj.bail;
-                return fn
+                return fn;
               }
             });
       } else {
@@ -141,7 +141,7 @@ function create(config = {}) {
       return () => {
         this.splice(this.indexOf(entry), 1);
         generateTrap();
-      }
+      };
     }
 
     let hook;

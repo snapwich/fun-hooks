@@ -17,12 +17,12 @@ The goals of this library are the following (in priority order):
   3. [Simple but powerful API](#usage)
   4. [Limited footprint](#footprint)
 
-### Usage
+## Usage
 Hooks follow the same format whether they're `sync` or `async` and whether they're `before` or `after` hooks; however, 
 it's important to remember that `sync` `after` hooks act on the _return_ result and `async` `after` hooks act on the 
 _callback's_ arguments.
 
-#### Configuration
+### Configuration
   - **useProxy** : boolean - (Default: **true**) Whether to use `Proxy` or a wrapper function for hooked functions.  
   _Note: if `Proxy` is unavailable then the library will automatically fallback to using wrapper functions._
 ```javascript
@@ -33,7 +33,7 @@ let createHook = configureHook({
 });
 ```
 
-#### Sync (`before`, `after`)
+### Sync (`before`, `after`)
 ```javascript
 function sum(a, b) {
   return a + b;
@@ -63,7 +63,7 @@ Also, if you're hooking a function with `sync` your hooks should all call `next`
 your value can be returned.  If you asynchronously call `next` in a `sync` hook then the return value will be 
 `undefined`._
 
-#### Async (`before`, `after`)
+### Async (`before`, `after`)
 ```javascript
 function increment(a, b, callback) {
   callback(a + 1, b + 1);
@@ -91,7 +91,7 @@ hookedIncrement(1, 1, function(a, b) {
 You'll notice no difference above in `sync` or `async` with the `before` hooks, but the `after` hooks are dealing with 
 the `callback`'s parameters in one case and the return result (which will always be a single value) in the other.
 
-#### Removing a hook
+### Removing a hook
 When a hook is created, a removal function is returned.  Calling the function will remove the hook.
 ```javascript
 function beforeHook() {
@@ -107,7 +107,7 @@ removeHook();
 hookedSum(1, 1); // hook not called
 ```
 
-#### Priority
+### Priority
 You can attach as many `before` or `after` hooks as you'd like to a function.  The order in which the hooks are ran is
 dependant on the order they're added or an optional `priority` argument set when creating the hook (which defaults 
 to a priority of `10`).
@@ -122,7 +122,7 @@ hookedSum.after(afterHook2);
 hookedSum(1, 1); // hookedSum -> beforeHook3 -> beforeHook1 -> beforeHook2 -> sum -> afterHook2 -> afterHook1
 ```
 
-#### Bailing
+### Bailing
 A hook can bail early to skip the other hooks or to skip the hooked function altogether (effectively stubbing it).
 
 ```javascript
@@ -144,7 +144,7 @@ hookedIncrement(1, 1, function callback(a, b) {}); // hookedIncrement -> bailHoo
 
 If you want to bail completely (i.e. not even call the callback) then just don't call `next`.
 
-#### Side-effect (or pass-through) only hooks
+### Side-effect (or pass-through) only hooks
 If you want to have a hook that just performs some side-effect before or after the hooked function but does not modify 
 arguments, just call `next` and pass-through the arguments without modifying them.  It's important that `next` is
 still called with the original arguments so that the hook-chain can continue.
@@ -156,7 +156,7 @@ hookedIncrement.before(function sideEffect(next, ...args) {
 })
 ```
 
-#### Naming
+### Naming
 Hooks can be given a name and then they will be exported using the `.hooks` property.  This can be useful for defining the 
 extensible API for your application.  _Note: You can also just expose references to the hooked functions themselves, 
 this is just a convenience to group all those function references together._
@@ -193,7 +193,7 @@ hooks.price.after(function currencyConversion(next, price) {
 });
 ```
 
-#### Objects
+### Objects
 While functions are the base unit of extension in this library, there is a convenience provided to apply hooks to object
 methods if an object is passed to the hook creator. _Note: `this` will be bound correctly in the hooked function as well 
 as in the `before` and `after` hooks (i.e. `this` refers to the object instance inside hooks)._
@@ -243,6 +243,8 @@ hook(Thing.prototype, ['setValue', 'getValue'], 'thing');
 hook.hooks; // {thing: {setValue, getValue}}
 ```
 
+## Additional Information
+
 ### Debugging
 One of the hardest parts of using libraries that allow for hooking, intercepting, and/or adding some sort of middleware 
 comes about when attempting to debug the code.  These libraries usually require a lot of scaffolding that manages
@@ -287,14 +289,14 @@ doesn't seem to be the case, but will probably change as Proxies are further opt
 Since this hooking library is written for Browsers first (as opposed to many in NPM which are expected to run in a Node
 environment) the footprint and API is being kept as slim as possible.
 
-## Code readability
+### Code readability
 Currently parts of this library are not very readable. Since much of the code is dynamically generated (using 
 `new Function`) and is in strings it can't be properly minified by a minifier and is therefore written into the code 
 pre-minified. This hurts readability but is necessary to remain as small as possible. Readability could probably 
 still be improved somewhat but is considered low-priority compared to the goals stated above.  There are extensive 
 tests to ensure the code is as bug-free as possible.
 
-## `next` as first argument
+### `next` as first argument
 It is a common convention in Javascript to pass callbacks as the last argument to a function. However, `fun-hooks` 
 breaks this convention for a two reasons.
 
@@ -315,4 +317,7 @@ breaks this convention for a two reasons.
 npm run test 
 # or with debugging
 npm run test:debug
+
+# lint
+npm run lint
 ```
