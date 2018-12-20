@@ -550,4 +550,21 @@ test('exposes named hooks', () => {
     let hookedFn2 = hook(hookedFn);
     expect(hookedFn).toEqual(hookedFn2);
   });
+
+  test(n('should allow us to get hooks with getHooks'), () => {
+    let fn = () => {};
+    let hookedFn = hook(fn);
+    let hook1 = () => {};
+    let hook2 = () => {};
+
+    let remove1 = hookedFn.before(hook1, 8);
+    let remove2 = hookedFn.before(hook1);
+    let remove3 = hookedFn.after(hook2);
+
+    expect(hookedFn.getHooks()).toEqual([
+      {fn: hook1, type: 'before', priority: 10, remove: remove2},
+      {fn: hook1, type: 'before', priority: 8, remove: remove1},
+      {fn: hook2, type: 'after', priority: 10, remove: remove3}
+    ])
+  });
 });

@@ -56,7 +56,9 @@ function create(config = {}) {
     }
 
     let before = [];
+    before.type = 'before';
     let after = [];
+    after.type = 'after';
     let beforeFn = add.bind(before);
     let afterFn = add.bind(after);
     let handlers = {
@@ -65,6 +67,7 @@ function create(config = {}) {
           __funHook: type,
           before: beforeFn,
           after: afterFn,
+          getHooks,
           fn: fn
         }[prop] || Reflect.get(...arguments);
       }
@@ -133,18 +136,27 @@ function create(config = {}) {
       }
     }
 
+    function getHooks() {
+      return before.concat(after);
+    }
+
     function add(fn, priority = 10) {
-      let entry = {fn, priority};
+      let entry = {
+        fn,
+        type: this.type,
+        priority,
+        remove: () => {
+          let index = this.indexOf(entry);
+          if (index !== -1) {
+            this.splice(index, 1);
+            generateTrap();
+          }
+        }
+      };
       this.push(entry);
       this.sort((a, b) => b.priority - a.priority);
       generateTrap();
-      return () => {
-        let index = this.indexOf(entry);
-        if (index !== -1) {
-          this.splice(index, 1);
-          generateTrap();
-        }
-      };
+      return entry.remove;
     }
 
     let hook;
@@ -157,6 +169,7 @@ function create(config = {}) {
       hook.__funHook = type;
       hook.before = beforeFn;
       hook.after = afterFn;
+      hook.getHooks = getHooks;
       hook.fn = fn;
     }
 
