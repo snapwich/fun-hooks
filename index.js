@@ -139,8 +139,11 @@ function create(config = {}) {
       this.sort((a, b) => b.priority - a.priority);
       generateTrap();
       return () => {
-        this.splice(this.indexOf(entry), 1);
-        generateTrap();
+        let index = this.indexOf(entry);
+        if (index !== -1) {
+          this.splice(index, 1);
+          generateTrap();
+        }
       };
     }
 
