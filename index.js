@@ -2,6 +2,13 @@ const hasProxy = typeof Proxy === 'function';
 
 let baseObj = Object.getPrototypeOf({});
 
+function assign(target, ...rest) {
+  return rest.reduce((target, obj) => {
+    Object.keys(obj).forEach(prop => target[prop] = obj[prop]);
+    return target;
+  }, target);
+}
+
 function create(config = {}) {
   let hooks = {};
   let useProxy = typeof config.useProxy !== 'undefined' ? config.useProxy : hasProxy;
@@ -54,22 +61,24 @@ function create(config = {}) {
         throw 'attempting to wrap func with different hook types';
       }
     }
-
+    let hookFn;
     let before = [];
     before.type = 'before';
     let after = [];
     after.type = 'after';
     let beforeFn = add.bind(before);
     let afterFn = add.bind(after);
+    let ext = {
+      __funHook: type,
+      before: beforeFn,
+      after: afterFn,
+      getHooks,
+      remove,
+      fn: fn
+    };
     let handlers = {
       get(target, prop) {
-        return {
-          __funHook: type,
-          before: beforeFn,
-          after: afterFn,
-          getHooks,
-          fn: fn
-        }[prop] || Reflect.get(...arguments);
+        return ext[prop] || Reflect.get(...arguments);
       }
     };
 
@@ -124,13 +133,7 @@ function create(config = {}) {
           ].join(';');
         }
         handlers.apply = (new Function('b,a,n,t,h,g', code))
-          .bind(null, before, after, Object.assign ||
-            function assignBail(fn, obj) {
-              if (fn) {
-                fn.bail = obj.bail;
-                return fn;
-              }
-            });
+          .bind(null, before, after, Object.assign || assign);
       } else {
         delete handlers.apply;
       }
@@ -139,6 +142,11 @@ function create(config = {}) {
     function getHooks(match) {
       let all = before.concat(after);
       return match ? all.filter(entry => Object.keys(match).every(prop => entry[prop] === match[prop])) : all;
+    }
+
+    function remove(match) {
+      getHooks(match).forEach(entry => entry.remove());
+      return hookFn;
     }
 
     function add(hook, priority = 10) {
@@ -157,27 +165,22 @@ function create(config = {}) {
       this.push(entry);
       this.sort((a, b) => b.priority - a.priority);
       generateTrap();
-      return entry.remove;
+      return hookFn;
     }
 
-    let hook;
     if (useProxy) {
-      hook = new Proxy(fn, handlers);
+      hookFn = new Proxy(fn, handlers);
     } else {
-      hook = function(...args) {
+      hookFn = function(...args) {
         return handlers.apply ? handlers.apply(fn, this, args) : fn.apply(this, args);
       };
-      hook.__funHook = type;
-      hook.before = beforeFn;
-      hook.after = afterFn;
-      hook.getHooks = getHooks;
-      hook.fn = fn;
+      assign(hookFn, ext);
     }
 
     if (name) {
-      hooks[name] = hook;
+      hooks[name] = hookFn;
     }
-    return hook;
+    return hookFn;
   }
 
   dispatch.hooks = hooks;

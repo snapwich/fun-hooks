@@ -91,18 +91,20 @@ hookedIncrement(1, 1, function(a, b) {
 You'll notice no difference above in `sync` or `async` with the `before` hooks, but the `after` hooks are dealing with 
 the `callback`'s parameters in one case and the return result (which will always be a single value) in the other.
 
-### Removing a hook
-When a hook is created, a removal function is returned.  Calling the function will remove the hook.
+### Removing hooks
+Hooks can be removed using the remove method. You can either use a match object to remove a specific hook or pass 
+nothing to remove all hooks.
+
 ```javascript
 function beforeHook() {
   console.log("called");
 }
 
-let removeHook = hookedSum.before(beforeHook);
+hookedSum.before(beforeHook);
 
 hookedSum(1, 1); // "called"
 
-removeHook();
+removeHook.remove({hook: beforeHook});
 
 hookedSum(1, 1); // hook not called
 ```
@@ -148,11 +150,6 @@ If you want to bail completely (i.e. not even call the callback) then just don't
 You can get all the hook entries attached to a hooked function using `hookedFn.getHooks()`.  An optional argument 
 can be passed for matching only specific kinds of hooks: e.g. `hookedFn.getHooks({type: 'before'})` or
 `hookedFn.getHooks({hook: myBeforeHook})` to get a specific hook entry.
-
-```javascript
-// if you wanted to remove all hooks
-hookedFn.getHooks().forEach(hook => hook.remove());
-```
 
 ### Side-effect (or pass-through) only hooks
 If you want to have a hook that just performs some side-effect before or after the hooked function but does not modify 
