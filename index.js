@@ -77,10 +77,10 @@ function create(config = {}) {
       function chainHooks(hooks, name, code) {
         for (let i = hooks.length; i-- > 0;) {
           if (i === 0 && !(type === 'async' && name ==='a')) {
-            code = name + '[' + i + '].fn.apply(h,[' + code +
+            code = name + '[' + i + '].hook.apply(h,[' + code +
               (name === 'b' ? '].concat(g))' : ',r])');
           } else {
-            code = name + '[' + i + '].fn.bind(h,' + code + ')';
+            code = name + '[' + i + '].hook.bind(h,' + code + ')';
             if (!(type === 'async' && name === 'a' && i === 0)) {
               code = 'n(' + code + ',e)';
             }
@@ -136,13 +136,14 @@ function create(config = {}) {
       }
     }
 
-    function getHooks() {
-      return before.concat(after);
+    function getHooks(match) {
+      let all = before.concat(after);
+      return match ? all.filter(entry => Object.keys(match).every(prop => entry[prop] === match[prop])) : all;
     }
 
-    function add(fn, priority = 10) {
+    function add(hook, priority = 10) {
       let entry = {
-        fn,
+        hook,
         type: this.type,
         priority,
         remove: () => {

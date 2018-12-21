@@ -144,6 +144,16 @@ hookedIncrement(1, 1, function callback(a, b) {}); // hookedIncrement -> bailHoo
 
 If you want to bail completely (i.e. not even call the callback) then just don't call `next`.
 
+### Get Hooks
+You can get all the hook entries attached to a hooked function using `hookedFn.getHooks()`.  An optional argument 
+can be passed for matching only specific kinds of hooks: e.g. `hookedFn.getHooks({type: 'before'})` or
+`hookedFn.getHooks({hook: myBeforeHook})` to get a specific hook entry.
+
+```javascript
+// if you wanted to remove all hooks
+hookedFn.getHooks().forEach(hook => hook.remove());
+```
+
 ### Side-effect (or pass-through) only hooks
 If you want to have a hook that just performs some side-effect before or after the hooked function but does not modify 
 arguments, just call `next` and pass-through the arguments without modifying them.  It's important that `next` is

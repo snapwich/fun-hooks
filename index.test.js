@@ -562,9 +562,23 @@ test('exposes named hooks', () => {
     let remove3 = hookedFn.after(hook2);
 
     expect(hookedFn.getHooks()).toEqual([
-      {fn: hook1, type: 'before', priority: 10, remove: remove2},
-      {fn: hook1, type: 'before', priority: 8, remove: remove1},
-      {fn: hook2, type: 'after', priority: 10, remove: remove3}
-    ])
+      {hook: hook1, type: 'before', priority: 10, remove: remove2},
+      {hook: hook1, type: 'before', priority: 8, remove: remove1},
+      {hook: hook2, type: 'after', priority: 10, remove: remove3}
+    ]);
+
+    expect(hookedFn.getHooks({hook: hook2})).toEqual([
+      {hook: hook2, type: 'after', priority: 10, remove: remove3}
+    ]);
+
+    expect(hookedFn.getHooks({type: 'before'})).toEqual([
+      {hook: hook1, type: 'before', priority: 10, remove: remove2},
+      {hook: hook1, type: 'before', priority: 8, remove: remove1}
+    ]);
+
+    expect(hookedFn.getHooks({priority: 10})).toEqual([
+      {hook: hook1, type: 'before', priority: 10, remove: remove2},
+      {hook: hook2, type: 'after', priority: 10, remove: remove3}
+    ]);
   });
 });
