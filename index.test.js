@@ -414,7 +414,7 @@ test('exposes named hooks', () => {
     expect(result).toEqual(13);
 
     clearMocks(before, after);
-    hookedAsyncFn.remove({hook: after[1]});
+    hookedAsyncFn.getHooks({hook: after[1]}).remove();
     hookedAsyncFn(1, 2, cb);
     expectCalled(before, 2);
     expectCalled(after, 1);
@@ -423,13 +423,17 @@ test('exposes named hooks', () => {
     expect(result).toEqual(11);
 
     clearMocks(before, after);
-    hookedAsyncFn.remove({hook: before[1]});
+    hookedAsyncFn.getHooks({hook: before[1]}).remove();
     hookedAsyncFn(1, 2, cb);
     expectCalled(before, 1);
     expectCalled(after, 1);
     expect(asyncFn).toBeCalled();
     expect(cb).toBeCalled();
     expect(result).toEqual(9);
+
+    hookedAsyncFn.removeAll();
+    hookedAsyncFn(1, 2, cb)
+    expect(result).toEqual(5);
   });
 
   test(n('hooks have correct bound context'), () => {
@@ -445,25 +449,23 @@ test('exposes named hooks', () => {
 
     let hookedAsyncFn = hook('async', asyncFn);
 
-    hookedAsyncFn.before(function(cb) {
-      expect(this).toEqual(fnThis);
-      cb();
-    });
-
-    hookedAsyncFn.after(function(cb) {
-      expect(this).toEqual(fnThis);
-      cb();
-    });
-
-    hookedAsyncFn.before((function(cb) {
-      expect(this).toEqual(beforeThis);
-      cb();
-    }).bind(beforeThis));
-
-    hookedAsyncFn.after((function(cb) {
-      expect(this).toEqual(afterThis);
-      cb();
-    }).bind(afterThis));
+    hookedAsyncFn
+      .before(function(cb) {
+        expect(this).toEqual(fnThis);
+        cb();
+      })
+      .after(function(cb) {
+        expect(this).toEqual(fnThis);
+        cb();
+      })
+      .before((function(cb) {
+        expect(this).toEqual(beforeThis);
+        cb();
+      }).bind(beforeThis))
+      .after((function(cb) {
+        expect(this).toEqual(afterThis);
+        cb();
+      }).bind(afterThis));
 
     hookedAsyncFn.bind(fnThis)(function() {});
   });
@@ -478,38 +480,39 @@ test('exposes named hooks', () => {
     });
 
     let hookedAsyncFn = hook('async', asyncFn);
-    hookedAsyncFn.before(function(next) {
-      order.push(2);
-      next();
-    });
-    hookedAsyncFn.before(function(next) {
-      order.push(1);
-      next();
-    }, 11);
-    hookedAsyncFn.before(function(next) {
-      order.push(3);
-      next();
-    });
-    hookedAsyncFn.before(function(next) {
-      order.push(4);
-      next();
-    });
-    hookedAsyncFn.after(function(next) {
-      order.push(7);
-      next();
-    });
-    hookedAsyncFn.after(function(next) {
-      order.push(8);
-      next();
-    });
-    hookedAsyncFn.after(function(next) {
-      order.push(6);
-      next();
-    }, 12);
-    hookedAsyncFn.after(function(next) {
-      order.push(5);
-      next();
-    }, 13);
+    hookedAsyncFn
+      .before(function(next) {
+        order.push(2);
+        next();
+      })
+      .before(function(next) {
+        order.push(1);
+        next();
+      }, 11)
+      .before(function(next) {
+        order.push(3);
+        next();
+      })
+      .before(function(next) {
+        order.push(4);
+        next();
+      })
+      .after(function(next) {
+        order.push(7);
+        next();
+      })
+      .after(function(next) {
+        order.push(8);
+        next();
+      })
+      .after(function(next) {
+        order.push(6);
+        next();
+      }, 12)
+      .after(function(next) {
+        order.push(5);
+        next();
+      }, 13);
 
     hookedAsyncFn(callback);
 
@@ -563,24 +566,20 @@ test('exposes named hooks', () => {
 
     let remove = hookedFn.getHooks().map(entry => entry.remove);
 
-    expect(hookedFn.getHooks()).toEqual([
-      {hook: hook1, type: 'before', priority: 10, remove: remove[0]},
-      {hook: hook1, type: 'before', priority: 8, remove: remove[1]},
-      {hook: hook2, type: 'after', priority: 10, remove: remove[2]}
-    ]);
+    expect(hookedFn.getHooks().length).toEqual(3);
+    expect(hookedFn.getHooks()[0]).toEqual({hook: hook1, type: 'before', priority: 10, remove: remove[0]});
+    expect(hookedFn.getHooks()[1]).toEqual({hook: hook1, type: 'before', priority: 8, remove: remove[1]});
+    expect(hookedFn.getHooks()[2]).toEqual({hook: hook2, type: 'after', priority: 10, remove: remove[2]});
 
-    expect(hookedFn.getHooks({hook: hook2})).toEqual([
-      {hook: hook2, type: 'after', priority: 10, remove: remove[2]}
-    ]);
+    expect(hookedFn.getHooks({hook: hook2}).length).toEqual(1);
+    expect(hookedFn.getHooks({hook: hook2})[0]).toEqual({hook: hook2, type: 'after', priority: 10, remove: remove[2]});
 
-    expect(hookedFn.getHooks({type: 'before'})).toEqual([
-      {hook: hook1, type: 'before', priority: 10, remove: remove[0]},
-      {hook: hook1, type: 'before', priority: 8, remove: remove[1]}
-    ]);
+    expect(hookedFn.getHooks({type: 'before'}).length).toEqual(2);
+    expect(hookedFn.getHooks({type: 'before'})[0]).toEqual({hook: hook1, type: 'before', priority: 10, remove: remove[0]});
+    expect(hookedFn.getHooks({type: 'before'})[1]).toEqual({hook: hook1, type: 'before', priority: 8, remove: remove[1]});
 
-    expect(hookedFn.getHooks({priority: 10})).toEqual([
-      {hook: hook1, type: 'before', priority: 10, remove: remove[0]},
-      {hook: hook2, type: 'after', priority: 10, remove: remove[2]}
-    ]);
+    expect(hookedFn.getHooks({priority: 10}).length).toEqual(2);
+    expect(hookedFn.getHooks({priority: 10})[0]).toEqual({hook: hook1, type: 'before', priority: 10, remove: remove[0]});
+    expect(hookedFn.getHooks({priority: 10})[1]).toEqual({hook: hook2, type: 'after', priority: 10, remove: remove[2]});
   });
 });

@@ -73,7 +73,7 @@ function create(config = {}) {
       before: beforeFn,
       after: afterFn,
       getHooks,
-      remove,
+      removeAll,
       fn: fn
     };
     let handlers = {
@@ -140,13 +140,22 @@ function create(config = {}) {
     }
 
     function getHooks(match) {
-      let all = before.concat(after);
-      return match ? all.filter(entry => Object.keys(match).every(prop => entry[prop] === match[prop])) : all;
+      let hooks = before.concat(after);
+      if (typeof match === 'object') {
+        hooks = hooks.filter(entry => Object.keys(match).every(prop => entry[prop] === match[prop]));
+      }
+      return assign(
+        hooks, {
+          remove() {
+            hooks.forEach(entry => entry.remove());
+            return hookFn;
+          }
+        }
+      );
     }
 
-    function remove(match) {
-      getHooks(match).forEach(entry => entry.remove());
-      return hookFn;
+    function removeAll() {
+      return getHooks().remove();
     }
 
     function add(hook, priority = 10) {
