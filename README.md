@@ -104,7 +104,7 @@ hookedSum.before(beforeHook);
 
 hookedSum(1, 1); // "called"
 
-removeHook.remove({hook: beforeHook});
+removeHook.getHooks({hook: beforeHook}).remove();
 
 hookedSum(1, 1); // hook not called
 
