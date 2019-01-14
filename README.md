@@ -107,6 +107,10 @@ hookedSum(1, 1); // "called"
 removeHook.remove({hook: beforeHook});
 
 hookedSum(1, 1); // hook not called
+
+hookedSum.before(beforeHook);
+hookedSum.after(afterHook);
+hookedSum.removeAll(); // remove all before and after hooks
 ```
 
 ### Priority
