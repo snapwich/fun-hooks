@@ -432,7 +432,7 @@ test('exposes named hooks', () => {
     expect(result).toEqual(9);
 
     hookedAsyncFn.removeAll();
-    hookedAsyncFn(1, 2, cb)
+    hookedAsyncFn(1, 2, cb);
     expect(result).toEqual(5);
   });
 
