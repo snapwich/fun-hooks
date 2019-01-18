@@ -15,9 +15,7 @@
   "scripts": {
     "test": "jest",
     "test:debug": "node --inspect-brk ./node_modules/jest/bin/jest.js --runInBand .",
-    "lint": "eslint *.js",
-    "babel": "babel index.js -d dist",
-    "prepublish": "npm run babel"
+    "lint": "eslint *.js"
   },
   "repository": {
     "type": "git",
@@ -26,9 +24,6 @@
   "author": "Rich Snapp @snapwich",
   "license": "MIT",
   "devDependencies": {
-    "@babel/cli": "^7.2.3",
-    "@babel/core": "^7.2.2",
-    "@babel/preset-env": "^7.2.3",
     "eslint": "^5.10.0",
     "eslint-plugin-import": "^2.14.0",
     "eslint-plugin-jest": "^22.1.2",
