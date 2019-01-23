@@ -1,3 +1,6 @@
+
+'use strict';
+
 const hasProxy = typeof Proxy === 'function';
 
 let baseObj = Object.getPrototypeOf({});
@@ -13,12 +16,25 @@ function assign(target) {
   }, target);
 }
 
+function runAll(queue) {
+  let queued;
+  // eslint-disable-next-line no-cond-assign
+  while(queued = queue.shift()) {
+    queued();
+  }
+}
+
+const defaults = Object.freeze({
+  useProxy: hasProxy,
+  ready: 0
+});
+
 function create(config) {
   let hooks = {};
+  let queuedCalls = [];
+  let trapInstallers = [];
 
-  config = assign({
-    useProxy: hasProxy
-  }, config);
+  config = assign({}, defaults, config);
 
   function dispatch(arg1, arg2) {
     if (typeof arg1 === 'function') {
@@ -28,6 +44,17 @@ function create(config) {
     } else if (typeof arg1 === 'object') {
       return hookObj.apply(null, arguments);
     }
+  }
+
+  let ready;
+  if (config.ready) {
+    dispatch.ready = function() {
+      ready = true;
+      runAll(trapInstallers);
+      runAll(queuedCalls);
+    };
+  } else {
+    ready = true;
   }
 
   function hookObj(obj, props, objName) {
@@ -72,7 +99,8 @@ function create(config) {
         throw 'attempting to wrap func with different hook types';
       }
     }
-    let hookFn;
+    let trap;
+    let hookedFn;
     let before = [];
     before.type = 'before';
     let after = [];
@@ -92,6 +120,30 @@ function create(config) {
         return ext[prop] || Reflect.get.apply(Reflect, arguments);
       }
     };
+
+    if (!ready) {
+      trapInstallers.push(setTrap);
+    }
+
+    if (config.useProxy) {
+      hookedFn = new Proxy(fn, handlers);
+    } else {
+      hookedFn = function() {
+        return handlers.apply ?
+          handlers.apply(fn, this, Array.prototype.slice.call(arguments)) :
+          fn.apply(this, arguments);
+      };
+      assign(hookedFn, ext);
+    }
+
+    if (name) {
+      hooks[name] = hookedFn;
+    }
+
+    // make sure trap is set up even if no hooks are attached.
+    setTrap();
+
+    return hookedFn;
 
     function generateTrap() {
       function chainHooks(hooks, name, code) {
@@ -143,10 +195,32 @@ function create(config) {
             chainHooks(before, 'b', code)
           ].join(';');
         }
-        handlers.apply = (new Function('b,a,n,t,h,g', code))
+        trap = (new Function('b,a,n,t,h,g', code))
           .bind(null, before, after, Object.assign || assign);
       } else {
-        delete handlers.apply;
+        trap = undefined;
+      }
+      setTrap();
+    }
+
+    function setTrap() {
+      if (
+        ready ||
+        (type === 'sync' && !(config.ready & create.SYNC)) ||
+        (type === 'async' && !(config.ready & create.ASYNC))
+      ) {
+        handlers.apply = trap;
+      } else if (type === 'sync' ||  !(config.ready & create.QUEUE)) {
+        handlers.apply = function() {
+          throw 'hooked function not ready';
+        };
+      } else {
+        handlers.apply = function() {
+          let args = arguments;
+          queuedCalls.push(function() {
+            hookedFn.apply(args[1], args[2]);
+          });
+        };
       }
     }
 
@@ -165,7 +239,7 @@ function create(config) {
             hooks.forEach(function (entry) {
               entry.remove();
             });
-            return hookFn;
+            return hookedFn;
           }
         }
       );
@@ -193,28 +267,16 @@ function create(config) {
         return b.priority - a.priority;
       });
       generateTrap();
-      return hookFn;
+      return hookedFn;
     }
-
-    if (config.useProxy) {
-      hookFn = new Proxy(fn, handlers);
-    } else {
-      hookFn = function() {
-        return handlers.apply ?
-          handlers.apply(fn, this, Array.prototype.slice.call(arguments)) :
-          fn.apply(this, arguments);
-      };
-      assign(hookFn, ext);
-    }
-
-    if (name) {
-      hooks[name] = hookFn;
-    }
-    return hookFn;
   }
 
   dispatch.hooks = hooks;
   return dispatch;
 }
+
+create.SYNC = 1;
+create.ASYNC = 2;
+create.QUEUE = 4;
 
 module.exports = create;

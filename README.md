@@ -254,6 +254,53 @@ hook(Thing.prototype, ['setValue', 'getValue'], 'thing');
 hook.hooks; // {thing: {setValue, getValue}}
 ```
 
+### Ready
+Fun hooks allows you to specify whether hooked functions should either throw an error or queue (for async hooks only)
+when they are called before being "ready". To utilize this feature, use the `ready` configuration option when setting
+up the hooking library. The `ready` API is turned off by default.
+
+e.g.
+```javascript
+import funHooks from 'fun-hooks'; 
+let hook = funHooks({
+  // ready accepts a bit mask to determine ready behavior for sync and async hooks
+  // SYNC will cause sync hooks to throw if called before ready
+  // ASYNC will cause async hooks to throw if called before ready
+  // ASYNC + QUEUE will cause async hooks to queue (rather than throw) if called before ready (and execute immediately 
+  // when `ready()` is called)
+  ready: funHooks.SYNC | funHooks.ASYNC | funHooks.QUEUE
+});
+
+function sum(a + b) {
+  return a + b;
+}
+let hookedSum = hook(sum);
+
+hookedSum(1, 2); // throws 'not ready' error
+
+function addTen(a, cb) {
+  cb(a + 10);
+}
+
+let hookedAddTen = hook(addTen);
+
+hookedAddTen(6, function(result) {
+  console.log(result);
+}); // this will queue the call and `addOne` will not be executed
+
+function addOneHook(next, a) {
+  next(a + 1);
+}
+hookedAddTen.before(addOneHook);
+hookedSum.before(addOneHook)
+
+// all hooks are ready now, queued `addTen` and its hooks are now called and 17 is printed to screen.
+// notice the that the `addOneHook` for `hookedAddTen` was used even though it was added after `hookedAddTen` was called
+hook.ready(); 
+
+hookedSum(1, 2); // prints 4 since addOne hook was installed
+```
+
 ## Additional Information
 
 ### Debugging

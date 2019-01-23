@@ -31,9 +31,9 @@ test('exposes named hooks', () => {
 });
 
 [true, false].forEach(useProxy => {
-  let hook = create({
+  let config = {
     useProxy
-  });
+  };
 
   let n = (str) => str + (useProxy ? ' with proxy' : ' with wrapper');
 
@@ -64,6 +64,8 @@ test('exposes named hooks', () => {
   }
 
   test(n('calls hooked sync fn with no hooks'), () => {
+    let hook = create(config);
+
     let syncFn = jest.fn().mockReturnValue(3);
     let hookedSyncFn = hook('sync', syncFn);
 
@@ -74,6 +76,8 @@ test('exposes named hooks', () => {
   });
 
   test(n('calls hooked async fn with no hooks'), () => {
+    let hook = create(config);
+
     let asyncFn = (a, b, cb) => cb(a, b, 3);
     let cb = jest.fn();
     let hookedAsyncFn = hook('async', asyncFn);
@@ -84,6 +88,8 @@ test('exposes named hooks', () => {
   });
 
   test(n('assumes sync if not specified'), () => {
+    let hook = create(config);
+
     let syncFn = jest.fn((a, b) => a + b);
 
     let hookedSyncFn = hook(syncFn);
@@ -99,6 +105,8 @@ test('exposes named hooks', () => {
   });
 
   test(n('calls all hooks on sync hooked fn'), () => {
+    let hook = create(config);
+
     let syncFn = jest.fn((a, b) => a + b);
 
     let hookedSyncFn = hook('sync', syncFn);
@@ -176,6 +184,8 @@ test('exposes named hooks', () => {
   });
 
   test(n('calls hooks on async hooked fn'), () => {
+    let hook = create(config);
+
     let result;
     let cb = jest.fn(function(a, b) {
       result = a + b;
@@ -268,6 +278,8 @@ test('exposes named hooks', () => {
   });
 
   test(n('allows bailing early using cb.bail'), () => {
+    let hook = create(config);
+
     let result;
     let cb = jest.fn((a, b) => result = a + b);
 
@@ -326,6 +338,8 @@ test('exposes named hooks', () => {
   });
 
   test(n('callback to wrapped async fn should not have bail attached'), () => {
+    let hook = create(config);
+
     let cb = jest.fn((a, b) => a + b);
     let asyncFn = jest.fn((a, b, cb) => {
       expect(cb.bail).toBeUndefined();
@@ -343,6 +357,8 @@ test('exposes named hooks', () => {
   });
 
   test(n('calls before hooks on async hooked fn without callback'), () => {
+    let hook = create(config);
+
     let asyncFn = jest.fn();
 
     let hookedAsyncFn = hook('async', asyncFn);
@@ -366,6 +382,8 @@ test('exposes named hooks', () => {
   });
 
   test(n('hooks work correctly after removing'), () => {
+    let hook = create(config);
+
     let result;
     let cb = jest.fn(function(a, b) {
       result = a + b;
@@ -437,6 +455,7 @@ test('exposes named hooks', () => {
   });
 
   test(n('hooks have correct bound context'), () => {
+    let hook = create(config);
 
     let fnThis = {};
     let beforeThis = {};
@@ -471,6 +490,8 @@ test('exposes named hooks', () => {
   });
 
   test(n('hooks run in correct priority order'), () => {
+    let hook = create(config);
+
     let order = [];
     let callback = () => order.push(9);
 
@@ -520,6 +541,8 @@ test('exposes named hooks', () => {
   });
 
   test(n('allows hooking objects (and prototypes)'), () => {
+    let hook = create(config);
+
     let obj = Object.create({
       someFun() {},
       someFun2() {},
@@ -548,6 +571,8 @@ test('exposes named hooks', () => {
   });
 
   test(n('will not wrap hooks more than once'), () => {
+    let hook = create(config);
+
     let fn = () => {};
     let hookedFn = hook(fn);
     let hookedFn2 = hook(hookedFn);
@@ -555,6 +580,8 @@ test('exposes named hooks', () => {
   });
 
   test(n('should allow us to get hooks with getHooks'), () => {
+    let hook = create(config);
+
     let fn = () => {};
     let hookedFn = hook(fn);
     let hook1 = () => {};
@@ -581,5 +608,304 @@ test('exposes named hooks', () => {
     expect(hookedFn.getHooks({priority: 10}).length).toEqual(2);
     expect(hookedFn.getHooks({priority: 10})[0]).toEqual({hook: hook1, type: 'before', priority: 10, remove: remove[0]});
     expect(hookedFn.getHooks({priority: 10})[1]).toEqual({hook: hook2, type: 'after', priority: 10, remove: remove[2]});
+  });
+
+  describe('the ready option', () => {
+    let before, after;
+    beforeEach(() => {
+      before = jest.fn(cb => cb());
+      after = jest.fn(cb => cb());
+    });
+    describe('for sync functions', () => {
+      describe('when sync flag not set', () => {
+        let hook, fn, hookedFn;
+        beforeEach(() => {
+          hook = create(Object.assign({
+            ready: create.ASYNC
+          }, config));
+
+          fn = jest.fn(() => {});
+          hookedFn = hook(fn);
+        });
+
+        it(n('should run instantly with no hooks'), () => {
+          hookedFn();
+
+          expect(fn).toBeCalled();
+        });
+
+        it(n('should run instantly with before hooks'), () => {
+          hookedFn.before(before);
+
+          hookedFn();
+
+          expect(fn).toBeCalled();
+          expect(before).toBeCalled();
+        });
+
+        it(n('should run instantly with after hooks'), () => {
+          hookedFn.after(after);
+
+          hookedFn();
+
+          expect(fn).toBeCalled();
+          expect(after).toBeCalled();
+        });
+      });
+
+      describe('when sync flag is set but not ready', () => {
+        let hook, fn, hookedFn;
+        beforeEach(() => {
+          hook = create(Object.assign({
+            ready: create.SYNC
+          }, config));
+
+          fn = jest.fn(() => {});
+          hookedFn = hook(fn);
+        });
+
+        it(n('should throw when not ready but run when ready with no hooks'), () => {
+          expect(hookedFn).toThrow();
+          expect(fn).not.toBeCalled();
+
+          hook.ready();
+
+          expect(hookedFn).not.toThrow();
+          expect(fn).toBeCalled();
+        });
+
+        it(n('should throw when not ready but run when ready with before hooks'), () => {
+          hookedFn.before(before);
+
+          expect(hookedFn).toThrow();
+          expect(fn).not.toBeCalled();
+          expect(before).not.toBeCalled();
+
+          hook.ready();
+
+          expect(hookedFn).not.toThrow();
+          expect(fn).toBeCalled();
+          expect(before).toBeCalled();
+        });
+
+        it(n('should throw when not ready but run when ready with after hooks'), () => {
+          hookedFn.after(after);
+
+          expect(hookedFn).toThrow();
+          expect(fn).not.toBeCalled();
+          expect(after).not.toBeCalled();
+
+          hook.ready();
+
+          expect(hookedFn).not.toThrow();
+          expect(fn).toBeCalled();
+          expect(after).toBeCalled();
+        });
+      });
+    });
+    describe('for async functions', () => {
+      describe('with async flag not set', () => {
+        let hook, cb, fn, hookedFn;
+        beforeEach(() => {
+          hook = create(Object.assign({
+            ready: create.SYNC
+          }, config));
+
+          cb = jest.fn(() => {});
+          fn = jest.fn(cb => cb());
+
+          hookedFn = hook('async', fn);
+        });
+
+        it(n('should run instantly with no hooks'), () => {
+          hookedFn(cb);
+
+          expect(fn).toBeCalled();
+        });
+
+        it(n('should run instantly with before hooks'), () => {
+          hookedFn.before(before);
+
+          hookedFn(cb);
+
+          expect(fn).toBeCalled();
+          expect(before).toBeCalled();
+        });
+
+        it(n('should run instantly with after hooks'), () => {
+          hookedFn.after(after);
+
+          hookedFn(cb);
+
+          expect(fn).toBeCalled();
+          expect(after).toBeCalled();
+        });
+      });
+
+      describe('with async flag set', () => {
+        let hook, cb, fn, hookedFn;
+        beforeEach(() => {
+          hook = create(Object.assign({
+            ready: create.ASYNC
+          }, config));
+
+          cb = jest.fn(() => {});
+          fn = jest.fn(cb => cb());
+
+          hookedFn = hook('async', fn);
+        });
+
+        it(n('should throw when not ready but run when ready with no hooks'), () => {
+          expect(function() {
+            hookedFn(cb);
+          }).toThrow();
+
+          expect(fn).not.toBeCalled();
+
+          hook.ready();
+
+          expect(function() {
+            hookedFn(cb);
+          }).not.toThrow();
+
+          expect(fn).toBeCalled();
+        });
+
+        it(n('should throw when not ready but run when ready with before hooks'), () => {
+          hookedFn.before(before);
+
+          expect(function() {
+            hookedFn(cb);
+          }).toThrow();
+
+          expect(fn).not.toBeCalled();
+          expect(before).not.toBeCalled();
+
+          hook.ready();
+
+          expect(function() {
+            hookedFn(cb);
+          }).not.toThrow();
+
+          expect(fn).toBeCalled();
+          expect(before).toBeCalled();
+        });
+
+        it(n('should throw when not ready but run when ready with after hooks'), () => {
+          hookedFn.after(after);
+
+          expect(function() {
+            hookedFn(cb);
+          }).toThrow();
+
+          expect(fn).not.toBeCalled();
+          expect(after).not.toBeCalled();
+
+          hook.ready();
+
+          expect(function() {
+            hookedFn(cb);
+          }).not.toThrow();
+
+          expect(fn).toBeCalled();
+          expect(after).toBeCalled();
+        });
+      });
+
+      describe('with async and queue flags set', () => {
+        let hook, cb, fn, hookedFn;
+        beforeEach(() => {
+          hook = create(Object.assign({
+            ready: create.ASYNC | create.QUEUE
+          }, config));
+
+          cb = jest.fn(() => {});
+          fn = jest.fn(cb => cb());
+
+          hookedFn = hook('async', fn);
+        });
+
+        it('should queue when not ready and run when ready with no hooks', () => {
+          hookedFn(cb);
+
+          expect(fn).not.toBeCalled();
+          expect(cb).not.toBeCalled();
+
+          hook.ready();
+
+          expect(fn).toBeCalled();
+          expect(cb).toBeCalled();
+        });
+
+        it('should queue when not ready and run when ready with before hooks', () => {
+          hookedFn.before(before);
+
+          hookedFn(cb);
+
+          expect(fn).not.toBeCalled();
+          expect(cb).not.toBeCalled();
+          expect(before).not.toBeCalled();
+
+          hook.ready();
+
+          expect(fn).toBeCalled();
+          expect(cb).toBeCalled();
+          expect(before).toBeCalled();
+        });
+
+        it('should queue when not ready and run when ready with after hooks', () => {
+          hookedFn.after(after);
+
+          hookedFn(cb);
+
+          expect(fn).not.toBeCalled();
+          expect(cb).not.toBeCalled();
+          expect(after).not.toBeCalled();
+
+          hook.ready();
+
+          expect(fn).toBeCalled();
+          expect(cb).toBeCalled();
+          expect(after).toBeCalled();
+        });
+
+        it('should run immediately after ready', () => {
+          hookedFn.before(before);
+          hookedFn.after(after);
+
+          hook.ready();
+
+          hookedFn(cb);
+
+          expect(fn).toBeCalled();
+          expect(cb).toBeCalled();
+          expect(before).toBeCalled();
+          expect(after).toBeCalled();
+        });
+
+        it('should behave the same after ready if ready was called more than once', () => {
+          hookedFn.before(before);
+          hookedFn.after(after);
+
+          hookedFn(cb);
+
+          expect(fn).not.toBeCalled();
+          expect(cb).not.toBeCalled();
+          expect(before).not.toBeCalled();
+          expect(after).not.toBeCalled();
+
+          hook.ready();
+          hook.ready();
+
+          hookedFn(cb);
+
+          // each called twice for two hookedFn calls above (one queued), but not more
+          expect(fn).toBeCalledTimes(2);
+          expect(cb).toBeCalledTimes(2);
+          expect(before).toBeCalledTimes(2);
+          expect(after).toBeCalledTimes(2);
+        });
+      });
+    });
   });
 });
