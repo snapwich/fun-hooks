@@ -3,7 +3,12 @@ create.SYNC = 1;
 create.ASYNC = 2;
 create.QUEUE = 4;
 
-const hasProxy = typeof Proxy === 'function';
+let hasProxy = typeof Proxy === 'function';
+
+let defaults = Object.freeze({
+  useProxy: hasProxy,
+  ready: 0
+});
 
 let baseObj = Object.getPrototypeOf({});
 
@@ -25,11 +30,6 @@ function runAll(queue) {
     queued();
   }
 }
-
-const defaults = Object.freeze({
-  useProxy: hasProxy,
-  ready: 0
-});
 
 function create(config) {
   let hooks = {};
