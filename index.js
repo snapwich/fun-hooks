@@ -3,14 +3,14 @@ create.SYNC = 1;
 create.ASYNC = 2;
 create.QUEUE = 4;
 
-let hasProxy = typeof Proxy === 'function';
+var hasProxy = typeof Proxy === 'function';
 
-let defaults = Object.freeze({
+var defaults = Object.freeze({
   useProxy: hasProxy,
   ready: 0
 });
 
-let baseObj = Object.getPrototypeOf({});
+var baseObj = Object.getPrototypeOf({});
 
 function assign(target) {
   return Array.prototype.slice.call(arguments, 1).reduce(function(target, obj) {
@@ -24,7 +24,7 @@ function assign(target) {
 }
 
 function runAll(queue) {
-  let queued;
+  var queued;
   // eslint-disable-next-line no-cond-assign
   while(queued = queue.shift()) {
     queued();
@@ -32,9 +32,9 @@ function runAll(queue) {
 }
 
 function create(config) {
-  let hooks = {};
-  let queuedCalls = [];
-  let trapInstallers = [];
+  var hooks = {};
+  var queuedCalls = [];
+  var trapInstallers = [];
 
   config = assign({}, defaults, config);
 
@@ -48,7 +48,7 @@ function create(config) {
     }
   }
 
-  let ready;
+  var ready;
   if (config.ready) {
     dispatch.ready = function() {
       ready = true;
@@ -60,13 +60,13 @@ function create(config) {
   }
 
   function hookObj(obj, props, objName) {
-    let walk = true;
+    var walk = true;
     if (typeof props === 'undefined') {
       props = Object.getOwnPropertyNames(obj);
       walk = false;
     }
-    let objHooks = {};
-    let doNotHook = [
+    var objHooks = {};
+    var doNotHook = [
       'constructor'
     ];
     do {
@@ -74,11 +74,11 @@ function create(config) {
         return typeof obj[prop] === 'function' && !doNotHook.includes(prop) && !prop.match(/^_/);
       });
       props.forEach(function(prop) {
-        let parts = prop.split(':');
-        let name = parts[0];
-        let type = parts[1] || 'sync';
+        var parts = prop.split(':');
+        var name = parts[0];
+        var type = parts[1] || 'sync';
         if (!objHooks[name]) {
-          let fn = obj[name];
+          var fn = obj[name];
           objHooks[name] = obj[name] = hookFn(type, fn);
         }
       });
@@ -101,15 +101,15 @@ function create(config) {
         throw 'attempting to wrap func with different hook types';
       }
     }
-    let trap;
-    let hookedFn;
-    let before = [];
+    var trap;
+    var hookedFn;
+    var before = [];
     before.type = 'before';
-    let after = [];
+    var after = [];
     after.type = 'after';
-    let beforeFn = add.bind(before);
-    let afterFn = add.bind(after);
-    let ext = {
+    var beforeFn = add.bind(before);
+    var afterFn = add.bind(after);
+    var ext = {
       __funHook: type,
       before: beforeFn,
       after: afterFn,
@@ -117,7 +117,7 @@ function create(config) {
       removeAll: removeAll,
       fn: fn
     };
-    let handlers = {
+    var handlers = {
       get: function(target, prop) {
         return ext[prop] || Reflect.get.apply(Reflect, arguments);
       }
@@ -149,7 +149,7 @@ function create(config) {
 
     function generateTrap() {
       function chainHooks(hooks, name, code) {
-        for (let i = hooks.length; i-- > 0;) {
+        for (var i = hooks.length; i-- > 0;) {
           if (i === 0 && !(type === 'async' && name ==='a')) {
             code = name + '[' + i + '].hook.apply(h,[' + code +
               (name === 'b' ? '].concat(g))' : ',r])');
@@ -164,10 +164,10 @@ function create(config) {
       }
 
       if (before.length || after.length) {
-        let code;
+        var code;
         if (type === 'sync') {
-          let beforeCode = 'r=t.apply(h,' + (before.length ? 'arguments' : 'g') + ')';
-          let afterCode;
+          var beforeCode = 'r=t.apply(h,' + (before.length ? 'arguments' : 'g') + ')';
+          var afterCode;
           if (after.length) {
             afterCode = chainHooks(after, 'a', 'n(function extract(s){r=s},e)');
           }
@@ -218,7 +218,7 @@ function create(config) {
         };
       } else {
         handlers.apply = function() {
-          let args = arguments;
+          var args = arguments;
           queuedCalls.push(function() {
             hookedFn.apply(args[1], args[2]);
           });
@@ -227,7 +227,7 @@ function create(config) {
     }
 
     function getHooks(match) {
-      let hooks = before.concat(after);
+      var hooks = before.concat(after);
       if (typeof match === 'object') {
         hooks = hooks.filter(function (entry) {
           return Object.keys(match).every(function(prop) {
@@ -252,12 +252,12 @@ function create(config) {
     }
 
     function add(hook, priority) {
-      let entry = {
+      var entry = {
         hook: hook,
         type: this.type,
         priority: priority || 10,
         remove: function() {
-          let index = this.indexOf(entry);
+          var index = this.indexOf(entry);
           if (index !== -1) {
             this.splice(index, 1);
             generateTrap();
