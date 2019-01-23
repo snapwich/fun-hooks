@@ -1,6 +1,4 @@
 
-'use strict';
-
 create.SYNC = 1;
 create.ASYNC = 2;
 create.QUEUE = 4;
