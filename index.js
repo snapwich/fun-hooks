@@ -1,6 +1,10 @@
 
 'use strict';
 
+create.SYNC = 1;
+create.ASYNC = 2;
+create.QUEUE = 4;
+
 const hasProxy = typeof Proxy === 'function';
 
 let baseObj = Object.getPrototypeOf({});
@@ -274,9 +278,5 @@ function create(config) {
   dispatch.hooks = hooks;
   return dispatch;
 }
-
-create.SYNC = 1;
-create.ASYNC = 2;
-create.QUEUE = 4;
 
 module.exports = create;
