@@ -23,13 +23,15 @@ it's important to remember that `sync` `after` hooks act on the _return_ result 
 _callback's_ arguments.
 
 ### Configuration
-  - **useProxy** : boolean - (Default: **true**) Whether to use `Proxy` or a wrapper function for hooked functions.  
+  - **useProxy** : boolean - (Optional, default: **true**) Whether to use `Proxy` or a wrapper function for hooked functions.  
   _Note: if `Proxy` is unavailable then the library will automatically fallback to using wrapper functions._
+  - **ready** : number - (Optional, default: **0** (meaning no `ready()` call required)) See [Ready](#ready).
 ```javascript
-import configureHook from 'fun-hooks';    // babel (using webpack or such)
-let configureHook = require('fun-hooks'); // or in node
-let createHook = configureHook({
-  useProxy: false
+import funHooks from 'fun-hooks';    // es6 (using webpack or babel)
+let funHooks = require('fun-hooks'); // or in node
+let createHook = funHooks({
+  useProxy: false,
+  ready: funHooks.ASYNC | funHooks.QUEUE
 });
 ```
 
