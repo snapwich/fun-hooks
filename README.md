@@ -227,13 +227,14 @@ class Thing {
 }
 hook(Thing.prototype, ['setValue', 'getValue']);
 
-let myThing = new Thing();
-
-myThing.getValue.after(function(next) {
-  next(2);
+Thing.prototype.getValue.after(function(next) {
+  next(this.value + 2);
 });
 
-console.log(myThing.getValue()); // 2
+let myThing = new Thing();
+myThing.setValue(1);
+
+console.log(myThing.getValue()); // 3
 ```
 
 _Note: `hook` will also walk the prototype chain and find `getValue` if it were an inherited method._
