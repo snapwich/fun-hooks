@@ -23,7 +23,9 @@ it's important to remember that `sync` `after` hooks act on the _return_ result 
 _callback's_ arguments.
 
 ### Configuration
-  - **useProxy** : boolean - (Optional, default: **true**) Whether to use `Proxy` or a wrapper function for hooked functions.  
+  - **useProxy** : boolean - (Optional, default: **true**) Whether to use 
+  [Proxy](https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Proxy) or a wrapper 
+  function for hooked functions.  
   _Note: if `Proxy` is unavailable then the library will automatically fallback to using wrapper functions._
   - **ready** : number - (Optional, default: **0** (meaning no `ready()` call required)) See [Ready](#ready).
 ```javascript
