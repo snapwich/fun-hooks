@@ -11,7 +11,7 @@ function assign(target) {
   return Array.prototype.slice.call(arguments, 1).reduce(function(target, obj) {
     if (obj) {
       Object.keys(obj).forEach(function(prop) {
-        return target[prop] = obj[prop];
+        target[prop] = obj[prop];
       });
     }
     return target;
