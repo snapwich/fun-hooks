@@ -11,10 +11,10 @@
     "wrapper",
     "plugins"
   ],
-  "main": "./index.js",
+  "main": "index.js",
   "files": [
-    "./index.js",
-    "./dist/fun-hooks.min.js"
+    "index.js",
+    "dist/fun-hooks.min.js"
   ],
   "unpkg": "dist/fun-hooks.min.js",
   "scripts": {
