@@ -12,8 +12,21 @@ var defaults = Object.freeze({
 
 var baseObj = Object.getPrototypeOf({});
 
+// detect incorrectly implemented bind and if found use custom bind
+// https://github.com/snapwich/fun-hooks/issues/1
+var uniqueRef = {};
+var bind = (function(a, b) {return b;}).bind(null, 1, uniqueRef)() === uniqueRef ?
+  Function.prototype.bind :
+  function(bind) {
+    var self = this;
+    var args = rest(arguments, 1);
+    return function() {
+      return self.apply(bind, args.concat(rest(arguments)));
+    };
+  };
+
 function assign(target) {
-  return Array.prototype.slice.call(arguments, 1).reduce(function(target, obj) {
+  return rest(arguments, 1).reduce(function(target, obj) {
     if (obj) {
       Object.keys(obj).forEach(function(prop) {
         target[prop] = obj[prop];
@@ -21,6 +34,10 @@ function assign(target) {
     }
     return target;
   }, target);
+}
+
+function rest(args, skip) {
+  return Array.prototype.slice.call(args, skip);
 }
 
 function runAll(queue) {
@@ -107,8 +124,8 @@ function create(config) {
     before.type = 'before';
     var after = [];
     after.type = 'after';
-    var beforeFn = add.bind(before);
-    var afterFn = add.bind(after);
+    var beforeFn = bind.call(add, before);
+    var afterFn = bind.call(add, after);
     var ext = {
       __funHook: type,
       before: beforeFn,
@@ -132,7 +149,7 @@ function create(config) {
     } else {
       hookedFn = function() {
         return handlers.apply ?
-          handlers.apply(fn, this, Array.prototype.slice.call(arguments)) :
+          handlers.apply(fn, this, rest(arguments)) :
           fn.apply(this, arguments);
       };
       assign(hookedFn, ext);
@@ -154,7 +171,7 @@ function create(config) {
             code = name + '[' + i + '].hook.apply(h,[' + code +
               (name === 'b' ? '].concat(g))' : ',r])');
           } else {
-            code = name + '[' + i + '].hook.bind(h,' + code + ')';
+            code = 'i.call(' + name + '[' + i + '].hook, h,' + code + ')';
             if (!(type === 'async' && name === 'a' && i === 0)) {
               code = 'n(' + code + ',e)';
             }
@@ -192,13 +209,12 @@ function create(config) {
           }
           code = [
             'var z',
-            'typeof g[g.length-1]==="function"&&(z=g.pop().bind(null))',
+            'typeof g[g.length-1]==="function"&&(z=i.call(g.pop(),null))',
             'var e={bail:z}',
             chainHooks(before, 'b', code)
           ].join(';');
         }
-        trap = (new Function('b,a,n,t,h,g', code))
-          .bind(null, before, after, Object.assign || assign);
+        trap = bind.call(new Function('i,b,a,n,t,h,g', code), null, bind, before, after, Object.assign || assign);
       } else {
         trap = undefined;
       }
@@ -252,17 +268,18 @@ function create(config) {
     }
 
     function add(hook, priority) {
+      var self = this;
       var entry = {
         hook: hook,
         type: this.type,
         priority: priority || 10,
         remove: function() {
-          var index = this.indexOf(entry);
+          var index = self.indexOf(entry);
           if (index !== -1) {
-            this.splice(index, 1);
+            self.splice(index, 1);
             generateTrap();
           }
-        }.bind(this)
+        }
       };
       this.push(entry);
       this.sort(function (a, b) {
