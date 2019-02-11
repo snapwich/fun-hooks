@@ -12,19 +12,6 @@ var defaults = Object.freeze({
 
 var baseObj = Object.getPrototypeOf({});
 
-// detect incorrectly implemented bind and if found use custom bind
-// https://github.com/snapwich/fun-hooks/issues/1
-var uniqueRef = {};
-var bind = (function(a, b) {return b;}).bind(null, 1, uniqueRef)() === uniqueRef ?
-  Function.prototype.bind :
-  function(bind) {
-    var self = this;
-    var args = rest(arguments, 1);
-    return function() {
-      return self.apply(bind, args.concat(rest(arguments)));
-    };
-  };
-
 function assign(target) {
   return rest(arguments, 1).reduce(function(target, obj) {
     if (obj) {
@@ -118,6 +105,20 @@ function create(config) {
         throw 'attempting to wrap func with different hook types';
       }
     }
+
+    // detect incorrectly implemented bind and if found use custom bind
+    // https://github.com/snapwich/fun-hooks/issues/1
+    var uniqueRef = {};
+    var bind = (function(a, b) {return b;}).bind(null, 1, uniqueRef)() === uniqueRef ?
+      Function.prototype.bind :
+      function(bind) {
+        var self = this;
+        var args = rest(arguments, 1);
+        return function() {
+          return self.apply(bind, args.concat(rest(arguments)));
+        };
+      };
+
     var trap;
     var hookedFn;
     var before = [];
