@@ -1,6 +1,6 @@
 {
   "name": "fun-hooks",
-  "version": "0.6.5",
+  "version": "0.6.6",
   "description": "A generalized and simple hooking API for adding extensibility to applications",
   "keywords": [
     "hooks",
