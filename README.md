@@ -31,6 +31,7 @@ _callback's_ arguments.
 ```javascript
 import funHooks from 'fun-hooks';    // es6 (using webpack or babel)
 let funHooks = require('fun-hooks'); // or in node
+let funHooks = window.funHooks;      // or directly in browser from somewhere like https://unpkg.com/fun-hooks@latest
 let createHook = funHooks({
   useProxy: false,
   ready: funHooks.ASYNC | funHooks.QUEUE
