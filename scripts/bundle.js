@@ -11,9 +11,9 @@ let pkg = require(path.resolve(__dirname, '../package.json'));
 let outFile = 'fun-hooks.min.js';
 
 let license = `/*
+* @license MIT
 * Fun Hooks v<%= version %>
-* (c) <%= author %>; MIT license
-* <%= date %>
+* (c) <%= author %>
 */
 `;
 
@@ -46,17 +46,39 @@ license = _.template(license)({
   author: '@snapwich'
 });
 
-let minLib = license + Terser.minify(lib).code;
+let result = Terser.minify({
+  // "license.js": license,
+  "fun-hooks.js": license + lib
+}, {
+  output: {
+    comments: "some"
+  },
+  sourceMap: {
+    filename: outFile,
+    url: outFile + '.map'
+  }
+});
+
+if (result.error) {
+  throw result.error;
+}
+
+console.log(result.code);
 
 mkdirp(path.resolve(__dirname, '../dist'), err => {
   if (err) {
     throw err;
   }
-  fs.writeFile(path.resolve(__dirname, `../dist/${outFile}`), minLib, 'utf8', err => {
+  fs.writeFile(path.resolve(__dirname, `../dist/${outFile}`), result.code, 'utf8', err => {
     if (err) {
       throw err;
     }
-    console.log(`successfully built: ${outFile}`)
+    fs.writeFile(path.resolve(__dirname, `../dist/${outFile}.map`), result.map, 'utf8', err => {
+      if (err) {
+        throw err;
+      }
+      console.log(`successfully built: ${outFile}`)
+    });
   });
 });
 
