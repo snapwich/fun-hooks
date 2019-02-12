@@ -4,6 +4,7 @@
   "description": "A generalized and simple hooking API for adding extensibility to applications",
   "keywords": [
     "hooks",
+    "middleware",
     "before",
     "after",
     "pre",
