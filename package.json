@@ -14,7 +14,9 @@
   "main": "index.js",
   "files": [
     "index.js",
-    "dist/fun-hooks.min.js"
+    "dist/fun-hooks.js",
+    "dist/fun-hooks.min.js",
+    "dist/fun-hooks.min.js.map"
   ],
   "unpkg": "dist/fun-hooks.min.js",
   "scripts": {
