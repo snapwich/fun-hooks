@@ -1,5 +1,6 @@
 
 let Terser = require('terser');
+let prettier = require('prettier');
 let _ = require('lodash');
 let mkdirp = require('mkdirp');
 
@@ -8,7 +9,9 @@ let path = require('path');
 
 let pkg = require(path.resolve(__dirname, '../package.json'));
 
-let outFile = 'fun-hooks.min.js';
+let outDir = path.resolve(__dirname, '../dist');
+let outFile = 'fun-hooks.js';
+let outMinFile = outFile.replace('.', '.min.');
 
 let license = `/*
 * @license MIT
@@ -46,16 +49,19 @@ license = _.template(license)({
   author: '@snapwich'
 });
 
+lib = license + lib;
+
+lib = prettier.format(lib);
+
 let result = Terser.minify({
-  // "license.js": license,
-  "fun-hooks.js": license + lib
+  "fun-hooks.js": lib
 }, {
   output: {
     comments: "some"
   },
   sourceMap: {
-    filename: outFile,
-    url: outFile + '.map'
+    filename: outMinFile,
+    url: outMinFile + '.map'
   }
 });
 
@@ -69,16 +75,22 @@ mkdirp(path.resolve(__dirname, '../dist'), err => {
   if (err) {
     throw err;
   }
-  fs.writeFile(path.resolve(__dirname, `../dist/${outFile}`), result.code, 'utf8', err => {
-    if (err) {
-      throw err;
-    }
-    fs.writeFile(path.resolve(__dirname, `../dist/${outFile}.map`), result.map, 'utf8', err => {
+
+  Promise.all(_.map({
+    [path.join(outDir, outFile)]: lib,
+    [path.join(outDir, outMinFile)]: result.code,
+    [path.join(outDir, outMinFile + '.map')]: result.map
+  }, (code, file) => new Promise((resolve, reject) => {
+    fs.writeFile(file, code, 'utf8', err => {
       if (err) {
-        throw err;
+        return reject(err);
       }
-      console.log(`successfully built: ${outFile}`)
-    });
+      resolve(file);
+    })
+  }))).then(files => {
+    console.log('bundle output:\n', files);
+  }).catch(err => {
+    throw err;
   });
 });
 

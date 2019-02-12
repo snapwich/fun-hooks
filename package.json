@@ -36,6 +36,7 @@
     "eslint-plugin-jest": "^22.1.2",
     "jest": "^23.6.0",
     "mkdirp": "^0.5.1",
+    "prettier": "^1.16.4",
     "terser": "^3.16.1"
   }
 }
