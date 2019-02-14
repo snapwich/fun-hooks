@@ -24,6 +24,7 @@
     "test": "jest",
     "test:debug": "node --inspect-brk ./node_modules/jest/bin/jest.js --runInBand .",
     "lint": "eslint *.js",
+    "prettier": "prettier --write '{*.js,json,md}' --end-of-line lf",
     "bundle": "node scripts/bundle.js",
     "prepare": "npm run lint && npm run test && npm run bundle"
   },
@@ -35,8 +36,8 @@
   "license": "MIT",
   "devDependencies": {
     "eslint": "^5.10.0",
-    "eslint-plugin-import": "^2.14.0",
     "eslint-plugin-jest": "^22.1.2",
+    "eslint-plugin-prettier": "^3.0.1",
     "jest": "^23.6.0",
     "mkdirp": "^0.5.1",
     "prettier": "^1.16.4",

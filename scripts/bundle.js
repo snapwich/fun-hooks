@@ -1,6 +1,5 @@
 
 let Terser = require('terser');
-let prettier = require('prettier');
 let _ = require('lodash');
 let mkdirp = require('mkdirp');
 
@@ -51,8 +50,6 @@ license = _.template(license)({
 
 lib = license + lib;
 
-lib = prettier.format(lib);
-
 let result = Terser.minify({
   "fun-hooks.js": lib
 }, {
@@ -68,8 +65,6 @@ let result = Terser.minify({
 if (result.error) {
   throw result.error;
 }
-
-console.log(result.code);
 
 mkdirp(path.resolve(__dirname, '../dist'), err => {
   if (err) {

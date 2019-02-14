@@ -29,8 +29,8 @@ _callback's_ arguments.
   _Note: if `Proxy` is unavailable then the library will automatically fallback to using wrapper functions._
   - **ready** : number - (Optional, default: **0** (meaning no `ready()` call required)) See [Ready](#ready).
 ```javascript
-import funHooks from 'fun-hooks';    // es6 (using webpack or babel)
-let funHooks = require('fun-hooks'); // or in node
+import funHooks from "fun-hooks";    // es6 (using webpack or babel)
+let funHooks = require("fun-hooks"); // or in node
 let funHooks = window.funHooks;      // or directly in browser from somewhere like https://unpkg.com/fun-hooks@latest
 let createHook = funHooks({
   useProxy: false,
@@ -44,7 +44,7 @@ function sum(a, b) {
   return a + b;
 }
 
-let hookedSum = createHook('sync', sum);
+let hookedSum = createHook("sync", sum);
 
 // sync `before` hooks accept the arguments to sum, and `next` passes the arguments to sum (or next `before` hook)
 hookedSum.before(function(next, a, b) {
@@ -64,7 +64,7 @@ console.log(result); // 4
 ```
 
 _Note: You should always use `sync` if you are returning a value.  This includes if you are returning a `Promise`.  
-Also, if you're hooking a function with `sync` your hooks should all call `next` synchronously (e.g. no ajax) so that 
+Also, if you"re hooking a function with `sync` your hooks should all call `next` synchronously (e.g. no ajax) so that 
 your value can be returned.  If you asynchronously call `next` in a `sync` hook then the return value will be 
 `undefined`._
 
@@ -74,7 +74,7 @@ function increment(a, b, callback) {
   callback(a + 1, b + 1);
 }
 
-let hookedIncrement = createHook('async', increment);
+let hookedIncrement = createHook("async", increment);
 
 // async `before` hooks accept the arguments to sum, and `next` passes the arguments to the next `before` hook or sum (same as sync)
 hookedIncrement.before(function(next, a, b) {
@@ -157,7 +157,7 @@ If you want to bail completely (i.e. not even call the callback) then just don't
 
 ### Get Hooks
 You can get all the hook entries attached to a hooked function using `hookedFn.getHooks()`.  An optional argument 
-can be passed for matching only specific kinds of hooks: e.g. `hookedFn.getHooks({type: 'before'})` or
+can be passed for matching only specific kinds of hooks: e.g. `hookedFn.getHooks({type: "before"})` or
 `hookedFn.getHooks({hook: myBeforeHook})` to get a specific hook entry.
 
 ### Side-effect (or pass-through) only hooks
@@ -179,7 +179,7 @@ this is just a convenience to group all those function references together._
 
 ```javascript
 // some-applicaiton
-import hookFactory from 'fun-hooks'; 
+import hookFactory from "fun-hooks"; 
 let hook = hookFactory(); // default configuration
 
 function getItem(id, cb) {
@@ -190,13 +190,13 @@ function getPrice(item) {
   return item.price;
 }
 
-hook('async', getItem, 'item'); // naming this hook `item`
-hook('sync', getPrice, 'price'); // naming this hook `price`
+hook("async", getItem, "item"); // naming this hook `item`
+hook("sync", getPrice, "price"); // naming this hook `price`
 
 export const hooks = hook.hooks;
 
 // extending application
-import { hooks } from 'some-application';
+import { hooks } from "some-application";
 
 hooks.item.before(function modifyId(next, id) {
   let newId = getUpdatedId(id); // `id` naming scheme changed... luckily we have this hook available!
@@ -204,7 +204,7 @@ hooks.item.before(function modifyId(next, id) {
 });
 
 hooks.price.after(function currencyConversion(next, price) {
-  let newPrice = convert(price, 'USD');
+  let newPrice = convert(price, "USD");
   next(newPrice);
 });
 ```
@@ -226,7 +226,7 @@ class Thing {
     return this.value;
   }
 }
-hook(Thing.prototype, ['setValue', 'getValue']);
+hook(Thing.prototype, ["setValue", "getValue"]);
 
 Thing.prototype.getValue.after(function(next) {
   next(this.value + 2);
@@ -240,7 +240,7 @@ console.log(myThing.getValue()); // 3
 
 _Note: `hook` will also walk the prototype chain and find `getValue` if it were an inherited method._
 
-If `['setValue', 'getValue']` were omitted then `hook` would hook the results of
+If `["setValue", "getValue"]` were omitted then `hook` would hook the results of
 `Object.getOwnPropertyNames(Thing.prototype)` excluding `constructor` and any methods marked private with a preceding
 underscore (e.g. `_privateMethod() {}`).  Also, if the list of methods to hook is omitted, `hook` will no longer walk 
 the prototype chain to avoid creating accidental hooks.  
@@ -248,14 +248,14 @@ the prototype chain to avoid creating accidental hooks.
 Hooked methods are all assumed to be `sync` unless otherwise specified.
 
 ```javascript
-hook(Thing.prototype, ['setValue', 'sync:getValue' /* same as 'getValue' */, 'async:loadData']);
+hook(Thing.prototype, ["setValue", "sync:getValue" /* same as "getValue" */, "async:loadData"]);
 ```
 
 If a third argument, `name`, is provided, then the object's hooked methods will be added to the `.hooks` property 
 described above in [Naming](#naming).
 
 ```javascript
-hook(Thing.prototype, ['setValue', 'getValue'], 'thing');
+hook(Thing.prototype, ["setValue", 'getValue"], "thing");
 
 hook.hooks; // {thing: {setValue, getValue}}
 ```
@@ -267,7 +267,7 @@ up the hooking library. The `ready` API is turned off by default.
 
 e.g.
 ```javascript
-import funHooks from 'fun-hooks'; 
+import funHooks from "fun-hooks"; 
 let hook = funHooks({
   // ready accepts a bit mask to determine ready behavior for sync and async hooks
   // SYNC will cause sync hooks to throw if called before ready
@@ -282,7 +282,7 @@ function sum(a + b) {
 }
 let hookedSum = hook(sum);
 
-hookedSum(1, 2); // throws 'not ready' error
+hookedSum(1, 2); // throws "not ready" error
 
 function addTen(a, cb) {
   cb(a + 10);
