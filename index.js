@@ -349,7 +349,7 @@ function create(config) {
     }
   }
 
-  dispatch.hooks = get;
+  dispatch.get = get;
   return dispatch;
 }
 

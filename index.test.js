@@ -23,8 +23,8 @@ test("exposes named hooks", () => {
   let hooked1 = hook("sync", jest.fn(), "hooked1");
   let hooked2 = hook("async", jest.fn(), "hooked2");
 
-  expect(hook.hooks("hooked1")).toEqual(hooked1);
-  expect(hook.hooks("hooked2")).toEqual(hooked2);
+  expect(hook.get("hooked1")).toEqual(hooked1);
+  expect(hook.get("hooked2")).toEqual(hooked2);
 });
 
 [true, false].forEach(useProxy => {
@@ -547,7 +547,7 @@ test("exposes named hooks", () => {
     let hook = create(config);
 
     // should allow us to attach hooks before hookable is created
-    hook.hooks("myObj.someFun").after(function(cb, result) {
+    hook.get("myObj.someFun").after(function(cb, result) {
       cb(result + 1);
     });
 
@@ -577,10 +577,13 @@ test("exposes named hooks", () => {
     expect(obj.someFun5.before).toBeUndefined();
     expect(obj.someFun5.after).toBeUndefined();
 
-    expect(hook.hooks("myObj")).toEqual(hooks);
-    expect(hook.hooks("myObj.someFun")).toEqual(obj.someFun);
-    expect(hook.hooks("myObj.someFun2")).toEqual(obj.someFun2);
-    expect(hook.hooks("myObj.someFun4")).toEqual(obj.someFun4);
+    expect(hook.get("myObj")).toEqual(hooks);
+    expect(hook.get("myObj").someFun).toEqual(obj.someFun);
+    expect(hook.get("myObj").someFun2).toEqual(obj.someFun2);
+    expect(hook.get("myObj").someFun4).toEqual(obj.someFun4);
+    expect(hook.get("myObj.someFun")).toEqual(obj.someFun);
+    expect(hook.get("myObj.someFun2")).toEqual(obj.someFun2);
+    expect(hook.get("myObj.someFun4")).toEqual(obj.someFun4);
   });
 
   test(
@@ -592,8 +595,8 @@ test("exposes named hooks", () => {
         cb(a + 1);
       }
 
-      hook.hooks("myHook").before(addOne);
-      hook.hooks("myHook").after(addOne);
+      hook.get("myHook").before(addOne);
+      hook.get("myHook").after(addOne);
 
       let myHook = hook(function(a) {
         return a;
@@ -603,16 +606,16 @@ test("exposes named hooks", () => {
 
       expect(myHook(1)).toEqual(4);
 
-      hook.hooks("myObj.someFun").before(addOne);
-      hook.hooks("myObj.someFun").after(addOne);
+      hook.get("myObj.someFun").before(addOne);
+      hook.get("myObj.someFun").after(addOne);
 
       function ten(cb) {
         cb(10);
       }
 
-      hook.hooks("myObj.someFun").after(ten);
+      hook.get("myObj.someFun").after(ten);
       hook
-        .hooks("myObj.someFun")
+        .get("myObj.someFun")
         .getHooks({
           hook: ten
         })
@@ -652,7 +655,7 @@ test("exposes named hooks", () => {
 
       expect(console.warn).not.toHaveBeenCalled();
 
-      hook.hooks("myHook").before(function(cb) {
+      hook.get("myHook").before(function(cb) {
         cb.bail(1);
       });
 
