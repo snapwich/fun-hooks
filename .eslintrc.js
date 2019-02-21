@@ -12,9 +12,6 @@ module.exports = {
   },
   rules: {
     "prettier/prettier": "error",
-    "linebreak-style": [
-      "error",
-      "unix"
-    ]
+    "linebreak-style": ["error", "unix"]
   }
 };
