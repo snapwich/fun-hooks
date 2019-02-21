@@ -13,15 +13,66 @@ var defaults = Object.freeze({
 
 var baseObj = Object.getPrototypeOf({});
 
+// detect incorrectly implemented reduce and if found use polyfill
+// https://github.com/prebid/Prebid.js/issues/3576
+// polyfill from: https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Array/Reduce
+var reduce =
+  [1]
+    .reduce(function(a, b, c) {
+      return [a, b, c];
+    }, 2)
+    .toString() === "2,1,0"
+    ? Array.prototype.reduce
+    : function(callback, initial) {
+        var o = Object(this);
+        var len = o.length >>> 0;
+        var k = 0;
+        var value;
+        if (initial) {
+          value = initial;
+        } else {
+          while (k < len && !(k in o)) {
+            k++;
+          }
+          value = o[k++];
+        }
+        while (k < len) {
+          if (k in o) {
+            value = callback(value, o[k], k, o);
+          }
+          k++;
+        }
+        return value;
+      };
+
+// detect incorrectly implemented bind and if found use polyfill
+// https://github.com/snapwich/fun-hooks/issues/1
+var bind =
+  function(a, b) {
+    return b;
+  }.bind(null, 1, 4)() === 4
+    ? Function.prototype.bind
+    : function(bind) {
+        var self = this;
+        var args = rest(arguments, 1);
+        return function() {
+          return self.apply(bind, args.concat(rest(arguments)));
+        };
+      };
+
 function assign(target) {
-  return rest(arguments, 1).reduce(function(target, obj) {
-    if (obj) {
-      Object.keys(obj).forEach(function(prop) {
-        target[prop] = obj[prop];
-      });
-    }
-    return target;
-  }, target);
+  return reduce.call(
+    rest(arguments, 1),
+    function(target, obj) {
+      if (obj) {
+        Object.keys(obj).forEach(function(prop) {
+          target[prop] = obj[prop];
+        });
+      }
+      return target;
+    },
+    target
+  );
 }
 
 function rest(args, skip) {
@@ -35,22 +86,6 @@ function runAll(queue) {
     queued();
   }
 }
-
-// detect incorrectly implemented bind and if found use custom bind
-// https://github.com/snapwich/fun-hooks/issues/1
-var uniqueRef = {};
-var bind =
-  function(a, b) {
-    return b;
-  }.bind(null, 1, uniqueRef)() === uniqueRef
-    ? Function.prototype.bind
-    : function(bind) {
-        var self = this;
-        var args = rest(arguments, 1);
-        return function() {
-          return self.apply(bind, args.concat(rest(arguments)));
-        };
-      };
 
 function create(config) {
   var hooks = {};
@@ -90,7 +125,7 @@ function create(config) {
       props = props.filter(function(prop) {
         return (
           typeof obj[prop] === "function" &&
-          !doNotHook.includes(prop) &&
+          !(doNotHook.indexOf(prop) !== -1) &&
           !prop.match(/^_/)
         );
       });
@@ -118,32 +153,36 @@ function create(config) {
    */
   function get(path) {
     var parts = Array.isArray(path) ? path : path.split(".");
-    return parts.reduce(function(memo, part, i) {
-      var item = memo[part];
-      var installed = false;
-      if (item) {
-        return item;
-      } else if (i === parts.length - 1) {
-        if (!ready) {
-          postReady.push(function() {
-            if (!installed) {
-              // eslint-disable-next-line no-console
-              console.warn(
-                packageName +
-                  ": referenced '" +
-                  path +
-                  "' but it was never created"
-              );
-            }
-          });
+    return reduce.call(
+      parts,
+      function(memo, part, i) {
+        var item = memo[part];
+        var installed = false;
+        if (item) {
+          return item;
+        } else if (i === parts.length - 1) {
+          if (!ready) {
+            postReady.push(function() {
+              if (!installed) {
+                // eslint-disable-next-line no-console
+                console.warn(
+                  packageName +
+                    ": referenced '" +
+                    path +
+                    "' but it was never created"
+                );
+              }
+            });
+          }
+          return (memo[part] = newHookable(function(fn) {
+            memo[part] = fn;
+            installed = true;
+          }));
         }
-        return (memo[part] = newHookable(function(fn) {
-          memo[part] = fn;
-          installed = true;
-        }));
-      }
-      return (memo[part] = {});
-    }, hooks);
+        return (memo[part] = {});
+      },
+      hooks
+    );
   }
 
   function newHookable(onInstall) {
