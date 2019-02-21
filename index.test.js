@@ -23,10 +23,8 @@ test("exposes named hooks", () => {
   let hooked1 = hook("sync", jest.fn(), "hooked1");
   let hooked2 = hook("async", jest.fn(), "hooked2");
 
-  expect(hook.hooks).toEqual({
-    hooked1,
-    hooked2
-  });
+  expect(hook.get("hooked1")).toEqual(hooked1);
+  expect(hook.get("hooked2")).toEqual(hooked2);
 });
 
 [true, false].forEach(useProxy => {
@@ -548,8 +546,15 @@ test("exposes named hooks", () => {
   test(n("allows hooking objects (and prototypes)"), () => {
     let hook = create(config);
 
+    // should allow us to attach hooks before hookable is created
+    hook.get("myObj.someFun").after(function(cb, result) {
+      cb(result + 1);
+    });
+
     let obj = Object.create({
-      someFun() {},
+      someFun() {
+        return 1;
+      },
       someFun2() {},
       someFun3() {}
     });
@@ -572,8 +577,97 @@ test("exposes named hooks", () => {
     expect(obj.someFun5.before).toBeUndefined();
     expect(obj.someFun5.after).toBeUndefined();
 
-    expect(hook.hooks.myObj).toEqual(hooks);
+    expect(hook.get("myObj")).toEqual(hooks);
+    expect(hook.get("myObj").someFun).toEqual(obj.someFun);
+    expect(hook.get("myObj").someFun2).toEqual(obj.someFun2);
+    expect(hook.get("myObj").someFun4).toEqual(obj.someFun4);
+    expect(hook.get("myObj.someFun")).toEqual(obj.someFun);
+    expect(hook.get("myObj.someFun2")).toEqual(obj.someFun2);
+    expect(hook.get("myObj.someFun4")).toEqual(obj.someFun4);
   });
+
+  test(
+    n("allows us to add/remove hooks by name before a hookable is created"),
+    () => {
+      let hook = create(config);
+
+      function addOne(cb, a) {
+        cb(a + 1);
+      }
+
+      hook.get("myHook").before(addOne);
+      hook.get("myHook").after(addOne);
+
+      let myHook = hook(function(a) {
+        return a;
+      }, "myHook");
+
+      myHook.after(addOne);
+
+      expect(myHook(1)).toEqual(4);
+
+      hook.get("myObj.someFun").before(addOne);
+      hook.get("myObj.someFun").after(addOne);
+
+      function ten(cb) {
+        cb(10);
+      }
+
+      hook.get("myObj.someFun").after(ten);
+      hook
+        .get("myObj.someFun")
+        .getHooks({
+          hook: ten
+        })
+        .remove();
+
+      let obj = Object.create({
+        someFun(a) {
+          return a;
+        }
+      });
+
+      // hook created here should use named hooks created above.
+      hook(obj, ["someFun"], "myObj");
+
+      expect(obj.someFun(1)).toEqual(3);
+    }
+  );
+
+  test(
+    n(
+      "will display warning when a hook is referenced but never created before ready"
+    ),
+    () => {
+      /* eslint-disable no-console */
+
+      let hook = create(
+        Object.assign(
+          {
+            ready: create.SYNC
+          },
+          config
+        )
+      );
+
+      let oldWarn = console.warn;
+      console.warn = jest.fn();
+
+      expect(console.warn).not.toHaveBeenCalled();
+
+      hook.get("myHook").before(function(cb) {
+        cb.bail(1);
+      });
+
+      hook.ready();
+
+      expect(console.warn).toHaveBeenCalled();
+
+      console.warn = oldWarn;
+
+      /* eslint-enable no-conosle */
+    }
+  );
 
   test(n("will not wrap hooks more than once"), () => {
     let hook = create(config);

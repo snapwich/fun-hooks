@@ -173,9 +173,10 @@ hookedIncrement.before(function sideEffect(next, ...args) {
 ```
 
 ### Naming
-Hooks can be given a name and then they will be exported using the `.hooks` property.  This can be useful for defining the 
+Hooks can be given a name and then accessed using the `.get` method.  This can be useful for defining the 
 extensible API for your application.  _Note: You can also just expose references to the hooked functions themselves, 
-this is just a convenience to group all those function references together._
+this is just a convenience.  Also, when using named hooks, you can reference the hook by name using `.get` and add 
+`before` and `after` hooks before the hook itself has actually been created!_
 
 ```javascript
 // some-applicaiton
@@ -190,20 +191,26 @@ function getPrice(item) {
   return item.price;
 }
 
+// works, even though the "item" hook isn't defined until below!
+hook.get("item").after(function(next, id) {
+  console.log("accessing item: " + id);
+  next(id);
+});
+
 hook("async", getItem, "item"); // naming this hook `item`
 hook("sync", getPrice, "price"); // naming this hook `price`
 
-export const hooks = hook.hooks;
+export const getHook = hook.get;
 
 // extending application
-import { hooks } from "some-application";
+import { getHook } from "some-application";
 
-hooks.item.before(function modifyId(next, id) {
+getHook("item").before(function modifyId(next, id) {
   let newId = getUpdatedId(id); // `id` naming scheme changed... luckily we have this hook available!
   next(newId);
 });
 
-hooks.price.after(function currencyConversion(next, price) {
+getHook("price").after(function currencyConversion(next, price) {
   let newPrice = convert(price, "USD");
   next(newPrice);
 });
@@ -251,13 +258,16 @@ Hooked methods are all assumed to be `sync` unless otherwise specified.
 hook(Thing.prototype, ["setValue", "sync:getValue" /* same as "getValue" */, "async:loadData"]);
 ```
 
-If a third argument, `name`, is provided, then the object's hooked methods will be added to the `.hooks` property 
-described above in [Naming](#naming).
+If a third argument, `name`, is provided, then the object's hooked methods will be made accessible to the `.get` 
+method described above using `<Object Name>.<Method Name>` in [Naming](#naming).
 
 ```javascript
 hook(Thing.prototype, ["setValue", 'getValue"], "thing");
 
-hook.hooks; // {thing: {setValue, getValue}}
+// grab the collection of hooks
+hook.get("thing"); // {thing: {setValue, getValue}}
+// or grab an individual hook
+hook.get("thing.setValue");
 ```
 
 ### Ready

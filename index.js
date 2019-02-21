@@ -2,6 +2,8 @@ create.SYNC = 1;
 create.ASYNC = 2;
 create.QUEUE = 4;
 
+var packageName = "fun-hooks";
+
 var hasProxy = typeof Proxy === "function";
 
 var defaults = Object.freeze({
@@ -34,10 +36,25 @@ function runAll(queue) {
   }
 }
 
+// detect incorrectly implemented bind and if found use custom bind
+// https://github.com/snapwich/fun-hooks/issues/1
+var uniqueRef = {};
+var bind =
+  function(a, b) {
+    return b;
+  }.bind(null, 1, uniqueRef)() === uniqueRef
+    ? Function.prototype.bind
+    : function(bind) {
+        var self = this;
+        var args = rest(arguments, 1);
+        return function() {
+          return self.apply(bind, args.concat(rest(arguments)));
+        };
+      };
+
 function create(config) {
   var hooks = {};
-  var queuedCalls = [];
-  var trapInstallers = [];
+  var postReady = [];
 
   config = assign({}, defaults, config);
 
@@ -55,8 +72,7 @@ function create(config) {
   if (config.ready) {
     dispatch.ready = function() {
       ready = true;
-      runAll(trapInstallers);
-      runAll(queuedCalls);
+      runAll(postReady);
     };
   } else {
     ready = true;
@@ -84,69 +100,139 @@ function create(config) {
         var type = parts[1] || "sync";
         if (!objHooks[name]) {
           var fn = obj[name];
-          objHooks[name] = obj[name] = hookFn(type, fn);
+          objHooks[name] = obj[name] = hookFn(
+            type,
+            fn,
+            objName ? [objName, name] : undefined
+          );
         }
       });
       obj = Object.getPrototypeOf(obj);
     } while (walk && obj !== baseObj);
-    if (objName) {
-      hooks[objName] = objHooks;
-    }
     return objHooks;
+  }
+
+  /**
+   * Navigates a string path to return a hookable function.  If not found, creates a placeholder for hooks.
+   * @param {(Array<string> | string)} path
+   */
+  function get(path) {
+    var parts = Array.isArray(path) ? path : path.split(".");
+    return parts.reduce(function(memo, part, i) {
+      var item = memo[part];
+      var installed = false;
+      if (item) {
+        return item;
+      } else if (i === parts.length - 1) {
+        if (!ready) {
+          postReady.push(function() {
+            if (!installed) {
+              // eslint-disable-next-line no-console
+              console.warn(
+                packageName +
+                  ": referenced '" +
+                  path +
+                  "' but it was never created"
+              );
+            }
+          });
+        }
+        return (memo[part] = newHookable(function(fn) {
+          memo[part] = fn;
+          installed = true;
+        }));
+      }
+      return (memo[part] = {});
+    }, hooks);
+  }
+
+  function newHookable(onInstall) {
+    var before = [];
+    var after = [];
+    var generateTrap = function() {};
+
+    return {
+      __funHook: {
+        install: function(type, fn, generate) {
+          this.type = type;
+          this.fn = fn;
+          generateTrap = generate;
+          generate(before, after);
+          onInstall && onInstall(fn);
+        }
+      },
+      before: function(hook, priority) {
+        return add.call(this, before, "before", hook, priority);
+      },
+      after: function(hook, priority) {
+        return add.call(this, after, "after", hook, priority);
+      },
+      getHooks: function(match) {
+        var hooks = before.concat(after);
+        if (typeof match === "object") {
+          hooks = hooks.filter(function(entry) {
+            return Object.keys(match).every(function(prop) {
+              return entry[prop] === match[prop];
+            });
+          });
+        }
+        return assign(hooks, {
+          remove: function() {
+            hooks.forEach(function(entry) {
+              entry.remove();
+            });
+            return this;
+          }
+        });
+      },
+      removeAll: function() {
+        return this.getHooks().remove();
+      }
+    };
+
+    function add(store, type, hook, priority) {
+      var entry = {
+        hook: hook,
+        type: type,
+        priority: priority || 10,
+        remove: function() {
+          var index = store.indexOf(entry);
+          if (index !== -1) {
+            store.splice(index, 1);
+            generateTrap(before, after);
+          }
+        }
+      };
+      store.push(entry);
+      store.sort(function(a, b) {
+        return b.priority - a.priority;
+      });
+      generateTrap(before, after);
+      return this;
+    }
   }
 
   function hookFn(type, fn, name) {
     if (fn.__funHook) {
-      if (fn.__funHook === type) {
-        if (name) {
-          hooks[name] = fn;
-        }
-        return fn;
+      if (fn.__funHook.type !== type) {
+        throw packageName + ": recreated hookable with different type";
       } else {
-        throw "attempting to wrap func with different hook types";
+        return fn.__funHook.fn;
       }
     }
 
-    // detect incorrectly implemented bind and if found use custom bind
-    // https://github.com/snapwich/fun-hooks/issues/1
-    var uniqueRef = {};
-    var bind =
-      function(a, b) {
-        return b;
-      }.bind(null, 1, uniqueRef)() === uniqueRef
-        ? Function.prototype.bind
-        : function(bind) {
-            var self = this;
-            var args = rest(arguments, 1);
-            return function() {
-              return self.apply(bind, args.concat(rest(arguments)));
-            };
-          };
+    var hookable = name ? get(name) : newHookable();
 
     var trap;
     var hookedFn;
-    var before = [];
-    before.type = "before";
-    var after = [];
-    after.type = "after";
-    var beforeFn = bind.call(add, before);
-    var afterFn = bind.call(add, after);
-    var ext = {
-      __funHook: type,
-      before: beforeFn,
-      after: afterFn,
-      getHooks: getHooks,
-      removeAll: removeAll,
-      fn: fn
-    };
     var handlers = {
       get: function(target, prop) {
-        return ext[prop] || Reflect.get.apply(Reflect, arguments);
+        return hookable[prop] || Reflect.get.apply(Reflect, arguments);
       }
     };
 
     if (!ready) {
-      trapInstallers.push(setTrap);
+      postReady.push(setTrap);
     }
 
     if (config.useProxy) {
@@ -157,39 +243,14 @@ function create(config) {
           ? handlers.apply(fn, this, rest(arguments))
           : fn.apply(this, arguments);
       };
-      assign(hookedFn, ext);
+      assign(hookedFn, hookable);
     }
 
-    if (name) {
-      hooks[name] = hookedFn;
-    }
-
-    // make sure trap is set up even if no hooks are attached.
-    setTrap();
+    hookable.__funHook.install(type, hookedFn, generateTrap);
 
     return hookedFn;
 
-    function generateTrap() {
-      function chainHooks(hooks, name, code) {
-        for (var i = hooks.length; i-- > 0; ) {
-          if (i === 0 && !(type === "async" && name === "a")) {
-            code =
-              name +
-              "[" +
-              i +
-              "].hook.apply(h,[" +
-              code +
-              (name === "b" ? "].concat(g))" : ",r])");
-          } else {
-            code = "i.call(" + name + "[" + i + "].hook, h," + code + ")";
-            if (!(type === "async" && name === "a" && i === 0)) {
-              code = "n(" + code + ",e)";
-            }
-          }
-        }
-        return code;
-      }
-
+    function generateTrap(before, after) {
       if (before.length || after.length) {
         var code;
         if (type === "sync") {
@@ -244,6 +305,26 @@ function create(config) {
         trap = undefined;
       }
       setTrap();
+
+      function chainHooks(hooks, name, code) {
+        for (var i = hooks.length; i-- > 0; ) {
+          if (i === 0 && !(type === "async" && name === "a")) {
+            code =
+              name +
+              "[" +
+              i +
+              "].hook.apply(h,[" +
+              code +
+              (name === "b" ? "].concat(g))" : ",r])");
+          } else {
+            code = "i.call(" + name + "[" + i + "].hook, h," + code + ")";
+            if (!(type === "async" && name === "a" && i === 0)) {
+              code = "n(" + code + ",e)";
+            }
+          }
+        }
+        return code;
+      }
     }
 
     function setTrap() {
@@ -255,65 +336,20 @@ function create(config) {
         handlers.apply = trap;
       } else if (type === "sync" || !(config.ready & create.QUEUE)) {
         handlers.apply = function() {
-          throw "hooked function not ready";
+          throw packageName + ": hooked function not ready";
         };
       } else {
         handlers.apply = function() {
           var args = arguments;
-          queuedCalls.push(function() {
+          postReady.push(function() {
             hookedFn.apply(args[1], args[2]);
           });
         };
       }
     }
-
-    function getHooks(match) {
-      var hooks = before.concat(after);
-      if (typeof match === "object") {
-        hooks = hooks.filter(function(entry) {
-          return Object.keys(match).every(function(prop) {
-            return entry[prop] === match[prop];
-          });
-        });
-      }
-      return assign(hooks, {
-        remove: function() {
-          hooks.forEach(function(entry) {
-            entry.remove();
-          });
-          return hookedFn;
-        }
-      });
-    }
-
-    function removeAll() {
-      return getHooks().remove();
-    }
-
-    function add(hook, priority) {
-      var self = this;
-      var entry = {
-        hook: hook,
-        type: this.type,
-        priority: priority || 10,
-        remove: function() {
-          var index = self.indexOf(entry);
-          if (index !== -1) {
-            self.splice(index, 1);
-            generateTrap();
-          }
-        }
-      };
-      this.push(entry);
-      this.sort(function(a, b) {
-        return b.priority - a.priority;
-      });
-      generateTrap();
-      return hookedFn;
-    }
   }
 
-  dispatch.hooks = hooks;
+  dispatch.get = get;
   return dispatch;
 }
 
