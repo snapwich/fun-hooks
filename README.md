@@ -262,7 +262,7 @@ If a third argument, `name`, is provided, then the object's hooked methods will 
 method described above using `<Object Name>.<Method Name>` in [Naming](#naming).
 
 ```javascript
-hook(Thing.prototype, ["setValue", 'getValue"], "thing");
+hook(Thing.prototype, ["setValue", "getValue"], "thing");
 
 // grab the collection of hooks
 hook.get("thing"); // {thing: {setValue, getValue}}
