@@ -303,7 +303,11 @@ function create(config) {
             beforeCode = chainHooks(
               before,
               "b",
-              "n(function extract(){" + beforeCode + ";" + afterCode + "},e)"
+              "n(function extract(){" +
+                (beforeCode || "") +
+                ";" +
+                (afterCode || "") +
+                "},e)"
             );
             afterCode = "";
           }
