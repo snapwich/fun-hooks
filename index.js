@@ -291,82 +291,58 @@ function create(config) {
 
     function generateTrap(before, after) {
       if (before.length || after.length) {
-        var code;
-        if (type === "sync") {
-          var beforeCode =
-            "r=t.apply(h," + (before.length ? "arguments" : "g") + ")";
-          var afterCode;
-          if (after.length) {
-            afterCode = chainHooks(after, "a", "n(function extract(s){r=s},e)");
-          }
-          if (before.length) {
-            beforeCode = chainHooks(
-              before,
-              "b",
-              "n(function extract(){" +
-                (beforeCode || "") +
-                ";" +
-                (afterCode || "") +
-                "},e)"
-            );
-            afterCode = "";
-          }
-          code = [
-            "var r,e={bail:function(a){r=a}}",
-            beforeCode,
-            afterCode,
-            "return r"
-          ].join(";");
-        } else if (type === "async") {
-          code =
-            "t.apply(h," +
-            (before.length
-              ? "Array.prototype.slice.call(arguments)" // if we're wrapped in partial, extract arguments
-              : "g") + // otherwise, we can just use passed in arguments
-            ".concat(" +
-            chainHooks(after, "a", "z?n(z,e):[]") +
-            "))";
-          if (before.length) {
-            code = "n(function partial(){" + code + "},e)";
-          }
-          code = [
-            "var z",
-            'typeof g[g.length-1]==="function"&&(z=i.call(g.pop(),null))',
-            "var e={bail:z}",
-            chainHooks(before, "b", code)
-          ].join(";");
-        }
-        trap = bind.call(
-          new Function("i,b,a,n,t,h,g", code),
-          null,
-          bind,
-          before,
-          after,
-          Object.assign || assign
-        );
+        var beforeHooks = before.map(getHook);
+        var afterHooks = after.map(getHook);
+        trap = function(target, thisArg, args) {
+          var curr = 0;
+          var result;
+          var callback =
+            type === "async" &&
+            typeof args[args.length - 1] === "function" &&
+            args.pop();
+          var bail = function(value) {
+            if (type === "sync") {
+              result = value;
+            } else if (callback) {
+              callback.apply(null, arguments);
+            }
+          };
+          var next = function(value) {
+            if (order[curr]) {
+              var args = rest(arguments);
+              next.bail = bail;
+              args.unshift(next);
+              return order[curr++].apply(thisArg, args);
+            }
+            if (type === "sync") {
+              result = value;
+            } else if (callback) {
+              callback.apply(null, arguments);
+            }
+          };
+          var order = beforeHooks
+            .concat(function() {
+              var args = rest(arguments, 1);
+              if (type === "async" && callback) {
+                delete next.bail;
+                args.push(next);
+              }
+              var result = target.apply(thisArg, args);
+              if (type === "sync") {
+                next(result);
+              }
+            })
+            .concat(afterHooks);
+          next.apply(null, args);
+          return result;
+        };
       } else {
         trap = undefined;
       }
       setTrap();
 
-      function chainHooks(hooks, name, code) {
-        for (var i = hooks.length; i-- > 0; ) {
-          if (i === 0 && !(type === "async" && name === "a")) {
-            code =
-              name +
-              "[" +
-              i +
-              "].hook.apply(h,[" +
-              code +
-              (name === "b" ? "].concat(g))" : ",r])");
-          } else {
-            code = "i.call(" + name + "[" + i + "].hook, h," + code + ")";
-            if (!(type === "async" && name === "a" && i === 0)) {
-              code = "n(" + code + ",e)";
-            }
-          }
-        }
-        return code;
+      function getHook(item) {
+        return item.hook;
       }
     }
 
