@@ -42,5 +42,9 @@
     "mkdirp": "^0.5.1",
     "prettier": "^1.16.4",
     "terser": "^3.16.1"
+  },
+  "dependencies": {
+    "benchmark": "^2.1.4",
+    "lodash": "^4.17.11"
   }
 }
