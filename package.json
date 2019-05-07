@@ -24,7 +24,7 @@
     "test": "jest",
     "test:coverage": "jest --coverage --coverageReporters=text-lcov | env-cmd coveralls",
     "test:debug": "node --inspect-brk ./node_modules/jest/bin/jest.js --runInBand .",
-    "lint": "eslint *.js",
+    "lint": "eslint index.js index.test.js scripts/bundle.js",
     "prettier": "prettier --write \"{.,scripts}/{*.js,json,md}\" --end-of-line lf",
     "bundle": "node scripts/bundle.js",
     "validate": "npm run lint && npm run test",
