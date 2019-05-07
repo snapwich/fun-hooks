@@ -276,8 +276,6 @@ function create(config) {
 
     function generateTrap(before, after) {
       if (before.length || after.length) {
-        var beforeHooks = before.map(getHook);
-        var afterHooks = after.map(getHook);
         trap = function(target, thisArg, args) {
           var curr = 0;
           var result;
@@ -285,14 +283,14 @@ function create(config) {
             type === "async" &&
             typeof args[args.length - 1] === "function" &&
             args.pop();
-          var bail = function(value) {
+          function bail(value) {
             if (type === "sync") {
               result = value;
             } else if (callback) {
               callback.apply(null, arguments);
             }
-          };
-          var next = function(value) {
+          }
+          function next(value) {
             if (order[curr]) {
               var args = rest(arguments);
               next.bail = bail;
@@ -304,20 +302,24 @@ function create(config) {
             } else if (callback) {
               callback.apply(null, arguments);
             }
-          };
-          var order = beforeHooks
-            .concat(function() {
-              var args = rest(arguments, 1);
-              if (type === "async" && callback) {
-                delete next.bail;
-                args.push(next);
-              }
-              var result = target.apply(thisArg, args);
-              if (type === "sync") {
-                next(result);
-              }
-            })
-            .concat(afterHooks);
+          }
+          function addToOrder(entry) {
+            order.push(entry.hook);
+          }
+          var order = [];
+          before.forEach(addToOrder);
+          order.push(function() {
+            var args = rest(arguments, 1);
+            if (type === "async" && callback) {
+              delete next.bail;
+              args.push(next);
+            }
+            var result = target.apply(thisArg, args);
+            if (type === "sync") {
+              next(result);
+            }
+          });
+          after.forEach(addToOrder);
           next.apply(null, args);
           return result;
         };
@@ -325,10 +327,6 @@ function create(config) {
         trap = undefined;
       }
       setTrap();
-
-      function getHook(item) {
-        return item.hook;
-      }
     }
 
     function setTrap() {
