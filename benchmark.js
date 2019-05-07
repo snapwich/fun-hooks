@@ -3,7 +3,9 @@ var _ = require("lodash");
 var process = require("process");
 var benchmark = require("benchmark");
 var Benchmark = benchmark.runInContext({_, process});
-//window.Benchmark = Benchmark;
+if (typeof window !== "undefined") {
+  window.Benchmark = Benchmark;
+}
 var hookNoEval = require("./index.js")();
 var hookEval = require("./index.eval")();
 
@@ -24,8 +26,8 @@ addHooks
     hookedEval = hookEval("async", increment);
     hookedEval.before(hook);
     hookedEval.before(hook);
-    // hookedEval.after(hook);
-    // hookedEval.after(hook);
+    hookedEval.after(hook);
+    hookedEval.after(hook);
   })
   .add("add hooks no eval", function() {
     function increment(a, b, cb) {
@@ -34,8 +36,8 @@ addHooks
     hookedNoEval = hookNoEval("async", increment);
     hookedNoEval.before(hook);
     hookedNoEval.before(hook);
-    // hookedNoEval.after(hook);
-    // hookedNoEval.after(hook);
+    hookedNoEval.after(hook);
+    hookedNoEval.after(hook);
   })
   .on('cycle', function(event) {
     console.log(String(event.target));
