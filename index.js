@@ -45,21 +45,6 @@ var reduce =
         return value;
       };
 
-// detect incorrectly implemented bind and if found use polyfill
-// https://github.com/snapwich/fun-hooks/issues/1
-var bind =
-  function(a, b) {
-    return b;
-  }.bind(null, 1, 4)() === 4
-    ? Function.prototype.bind
-    : function(bind) {
-        var self = this;
-        var args = rest(arguments, 1);
-        return function() {
-          return self.apply(bind, args.concat(rest(arguments)));
-        };
-      };
-
 function assign(target) {
   return reduce.call(
     rest(arguments, 1),
