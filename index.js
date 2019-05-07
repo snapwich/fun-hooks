@@ -275,7 +275,13 @@ function create(config) {
     return hookedFn;
 
     function generateTrap(before, after) {
+      var order = [];
+      var targetIndex;
       if (before.length || after.length) {
+        before.forEach(addToOrder);
+        // placeholder for target function wrapper
+        targetIndex = order.push(undefined) - 1;
+        after.forEach(addToOrder);
         trap = function(target, thisArg, args) {
           var curr = 0;
           var result;
@@ -303,12 +309,7 @@ function create(config) {
               callback.apply(null, arguments);
             }
           }
-          function addToOrder(entry) {
-            order.push(entry.hook);
-          }
-          var order = [];
-          before.forEach(addToOrder);
-          order.push(function() {
+          order[targetIndex] = function() {
             var args = rest(arguments, 1);
             if (type === "async" && callback) {
               delete next.bail;
@@ -318,11 +319,13 @@ function create(config) {
             if (type === "sync") {
               next(result);
             }
-          });
-          after.forEach(addToOrder);
+          };
           next.apply(null, args);
           return result;
         };
+        function addToOrder(entry) {
+          order.push(entry.hook);
+        }
       } else {
         trap = undefined;
       }
