@@ -11,8 +11,6 @@ var defaults = Object.freeze({
   ready: 0
 });
 
-var baseObj = Object.getPrototypeOf({});
-
 // detect incorrectly implemented reduce and if found use polyfill
 // https://github.com/prebid/Prebid.js/issues/3576
 // polyfill from: https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Array/Reduce
@@ -44,21 +42,22 @@ var reduce =
         }
         return value;
       };
-
-function assign(target) {
-  return reduce.call(
-    rest(arguments, 1),
-    function(target, obj) {
-      if (obj) {
-        Object.keys(obj).forEach(function(prop) {
-          target[prop] = obj[prop];
-        });
-      }
-      return target;
-    },
-    target
-  );
-}
+/* @ifdef EVAL */
+// detect incorrectly implemented bind and if found use polyfill
+// https://github.com/snapwich/fun-hooks/issues/1
+var bind =
+  function(a, b) {
+    return b;
+  }.bind(null, 1, 4)() === 4
+    ? Function.prototype.bind
+    : function(bind) {
+        var self = this;
+        var args = rest(arguments, 1);
+        return function() {
+          return self.apply(bind, args.concat(rest(arguments)));
+        };
+      };
+/* @endif */
 
 function rest(args, skip) {
   return Array.prototype.slice.call(args, skip);
@@ -76,7 +75,7 @@ function create(config) {
   var hooks = {};
   var postReady = [];
 
-  config = assign({}, defaults, config);
+  config = Object.assign({}, defaults, config);
 
   function dispatch(arg1, arg2) {
     if (typeof arg1 === "function") {
@@ -128,7 +127,7 @@ function create(config) {
         }
       });
       obj = Object.getPrototypeOf(obj);
-    } while (walk && obj !== baseObj);
+    } while (walk && obj);
     return objHooks;
   }
 
@@ -200,7 +199,7 @@ function create(config) {
             });
           });
         }
-        return assign(hooks, {
+        return Object.assign(hooks, {
           remove: function() {
             hooks.forEach(function(entry) {
               entry.remove();
@@ -267,13 +266,93 @@ function create(config) {
           ? handlers.apply(fn, this, rest(arguments))
           : fn.apply(this, arguments);
       };
-      assign(hookedFn, hookable);
+      Object.assign(hookedFn, hookable);
     }
 
     hookable.__funHook.install(type, hookedFn, generateTrap);
 
     return hookedFn;
 
+    /* @ifdef EVAL */
+    function generateTrap(before, after) {
+      if (before.length || after.length) {
+        var code;
+        if (type === "sync") {
+          var beforeCode =
+            "r=t.apply(h," + (before.length ? "arguments" : "g") + ")";
+          var afterCode;
+          if (after.length) {
+            afterCode = chainHooks(after, "a", "n(function extract(s){r=s},e)");
+          }
+          if (before.length) {
+            beforeCode = chainHooks(
+              before,
+              "b",
+              "n(function extract(){" + beforeCode + ";" + afterCode + "},e)"
+            );
+            afterCode = "";
+          }
+          code = [
+            "var r,e={bail:function(a){r=a}}",
+            beforeCode,
+            afterCode,
+            "return r"
+          ].join(";");
+        } else if (type === "async") {
+          code =
+            "t.apply(h," +
+            (before.length
+              ? "Array.prototype.slice.call(arguments)" // if we're wrapped in partial, extract arguments
+              : "g") + // otherwise, we can just use passed in arguments
+            ".concat(" +
+            chainHooks(after, "a", "z?n(z,e):[]") +
+            "))";
+          if (before.length) {
+            code = "n(function partial(){" + code + "},e)";
+          }
+          code = [
+            "var z",
+            'typeof g[g.length-1]==="function"&&(z=i.call(g.pop(),null))',
+            "var e={bail:z}",
+            chainHooks(before, "b", code)
+          ].join(";");
+        }
+        trap = bind.call(
+          new Function("i,b,a,n,t,h,g", code),
+          null,
+          bind,
+          before,
+          after,
+          Object.assign
+        );
+      } else {
+        trap = undefined;
+      }
+      setTrap();
+
+      function chainHooks(hooks, name, code) {
+        for (var i = hooks.length; i-- > 0; ) {
+          if (i === 0 && !(type === "async" && name === "a")) {
+            code =
+              name +
+              "[" +
+              i +
+              "].hook.apply(h,[" +
+              code +
+              (name === "b" ? "].concat(g))" : ",r])");
+          } else {
+            code = "i.call(" + name + "[" + i + "].hook, h," + code + ")";
+            if (!(type === "async" && name === "a" && i === 0)) {
+              code = "n(" + code + ",e)";
+            }
+          }
+        }
+        return code;
+      }
+    }
+    /* @endif */
+    /* @ifndef EVAL */
+    // eslint-disable-next-line no-redeclare
     function generateTrap(before, after) {
       var order = [];
       var targetIndex;
@@ -323,14 +402,16 @@ function create(config) {
           next.apply(null, args);
           return result;
         };
-        function addToOrder(entry) {
-          order.push(entry.hook);
-        }
       } else {
         trap = undefined;
       }
       setTrap();
+
+      function addToOrder(entry) {
+        order.push(entry.hook);
+      }
     }
+    /* @endif */
 
     function setTrap() {
       if (
@@ -358,4 +439,5 @@ function create(config) {
   return dispatch;
 }
 
+/* global module */
 module.exports = create;
