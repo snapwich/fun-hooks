@@ -62,32 +62,36 @@ let wrapper = `
 }));
 `;
 
-let lib = _.template(wrapper)({
-  code: code
-});
-
 license = _.template(license)({
   version: pkg.version,
   author: "@snapwich"
 });
 
-lib = license + lib;
+let evalCode = pp.preprocess(code, { EVAL: true }, { type: "js" });
+let noEvalCode = pp.preprocess(code, {}, { type: "js" });
+let distEvalCode =
+  license +
+  _.template(wrapper)({
+    code: evalCode
+  });
+let distNoEvalCode =
+  license +
+  _.template(wrapper)({
+    code: noEvalCode
+  });
 
-let evalCode = pp.preprocess(lib, { EVAL: true }, { type: "js" });
-let noEvalCode = pp.preprocess(lib, {}, { type: "js" });
-
-let minEvalCode = minify("fun-hooks.js", evalCode);
-let minNoEvalCode = minify("fun-hooks.no-eval.js", noEvalCode);
+let distMinEvalCode = minify("fun-hooks.js", distEvalCode);
+let distMinNoEvalCode = minify("fun-hooks.no-eval.js", distNoEvalCode);
 
 let output = {
-  "fun-hooks.js": evalCode,
-  "fun-hooks.min.js": minEvalCode.code,
-  "fun-hooks.min.js.map": minEvalCode.map,
-  "fun-hooks.no-eval.js": noEvalCode,
-  "fun-hooks.no-eval.min.js": minNoEvalCode.code,
-  "fun-hooks.no-eval.min.js.map": minNoEvalCode.map,
-  "../no-eval/index.js": noEvalCode,
-  "../eval/index.js": evalCode
+  "fun-hooks.js": distEvalCode,
+  "fun-hooks.min.js": distMinEvalCode.code,
+  "fun-hooks.min.js.map": distMinEvalCode.map,
+  "fun-hooks.no-eval.js": distNoEvalCode,
+  "fun-hooks.no-eval.min.js": distMinNoEvalCode.code,
+  "fun-hooks.no-eval.min.js.map": distMinNoEvalCode.map,
+  "../no-eval/index.js": license + noEvalCode,
+  "../eval/index.js": license + evalCode
 };
 
 if (argv.output) {
