@@ -1,16 +1,40 @@
+let path = require("path");
+let fs = require("fs");
+let pp = require("preprocess");
+let Terser = require("terser");
+let _ = require("lodash");
+let mkdirp = require("mkdirp");
+let argv = require("yargs").argv;
 
-let Terser = require('terser');
-let _ = require('lodash');
-let mkdirp = require('mkdirp');
+/* global module, require, __dirname */
 
-let fs = require('fs');
-let path = require('path');
+let pkg = require(path.resolve(__dirname, "../package.json"));
 
-let pkg = require(path.resolve(__dirname, '../package.json'));
+let code = fs.readFileSync(path.resolve(__dirname, "../index.js"), "utf-8");
 
-let outDir = path.resolve(__dirname, '../dist');
-let outFile = 'fun-hooks.js';
-let outMinFile = outFile.replace('.', '.min.');
+let outDir = path.resolve(__dirname, "../dist");
+
+function minify(name, code) {
+  let outMinFile = name.replace(".", ".min.");
+  let result = Terser.minify(
+    {
+      [name]: code
+    },
+    {
+      output: {
+        comments: "some"
+      },
+      sourceMap: {
+        filename: outMinFile,
+        url: outMinFile + ".map"
+      }
+    }
+  );
+  if (result.error) {
+    throw result.error;
+  }
+  return result;
+}
 
 let license = `/*
 * @license MIT
@@ -39,64 +63,55 @@ let wrapper = `
 `;
 
 let lib = _.template(wrapper)({
-  code: fs.readFileSync(path.resolve(__dirname, '../index.js'), 'utf-8')
+  code: code
 });
 
 license = _.template(license)({
-  date: date(),
   version: pkg.version,
-  author: '@snapwich'
+  author: "@snapwich"
 });
 
 lib = license + lib;
 
-let result = Terser.minify({
-  "fun-hooks.js": lib
-}, {
-  output: {
-    comments: "some"
-  },
-  sourceMap: {
-    filename: outMinFile,
-    url: outMinFile + '.map'
-  }
-});
+let evalCode = pp.preprocess(lib, { EVAL: true }, { type: "js" });
+let noEvalCode = pp.preprocess(lib, {}, { type: "js" });
 
-if (result.error) {
-  throw result.error;
-}
+let minEvalCode = minify("fun-hooks.js", evalCode);
+let minNoEvalCode = minify("fun-hooks.no-eval.js", noEvalCode);
 
-mkdirp(path.resolve(__dirname, '../dist'), err => {
-  if (err) {
-    throw err;
-  }
+let output = {
+  "fun-hooks.js": evalCode,
+  "fun-hooks.min.js": minEvalCode.code,
+  "fun-hooks.min.js.map": minEvalCode.map,
+  "fun-hooks.no-eval.js": noEvalCode,
+  "fun-hooks.no-eval.min.js": minNoEvalCode.code,
+  "fun-hooks.no-eval.min.js.map": minNoEvalCode.map,
+  "../no-eval/index.js": noEvalCode,
+  "../eval/index.js": evalCode
+};
 
-  Promise.all(_.map({
-    [path.join(outDir, outFile)]: lib,
-    [path.join(outDir, outMinFile)]: result.code,
-    [path.join(outDir, outMinFile + '.map')]: result.map
-  }, (code, file) => new Promise((resolve, reject) => {
-    fs.writeFile(file, code, 'utf8', err => {
-      if (err) {
-        return reject(err);
-      }
-      resolve(file);
+if (argv.output) {
+  Promise.all(
+    _.map(output, (code, name) => {
+      let file = path.join(outDir, name);
+      return new Promise((resolve, reject) => {
+        mkdirp(path.dirname(file), err => {
+          if (err) {
+            return reject(err);
+          }
+          fs.writeFile(file, code, "utf-8", err => {
+            if (err) {
+              return reject(err);
+            }
+            resolve(file);
+          });
+        });
+      });
     })
-  }))).then(files => {
-    console.log('bundle output:\n', files);
-  }).catch(err => {
-    throw err;
+  ).then(files => {
+    // eslint-disable-next-line no-console
+    console.log("bundle output:\n", files);
   });
-});
-
-function pad(n, width = 2) {
-  n = n + '';
-  return n.length >= width ? n : new Array(width - n.length + 1).join(0) + n;
-}
-
-function date() {
-  let today = new Date();
-  let day = pad(today.getDate());
-  let month = pad(today.getMonth() + 1);
-  return [today.getFullYear(), month, day].join('-');
+} else {
+  module.exports = output;
 }

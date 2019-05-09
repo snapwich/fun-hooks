@@ -11,8 +11,6 @@ var defaults = Object.freeze({
   ready: 0
 });
 
-var baseObj = Object.getPrototypeOf({});
-
 // detect incorrectly implemented reduce and if found use polyfill
 // https://github.com/prebid/Prebid.js/issues/3576
 // polyfill from: https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Array/Reduce
@@ -44,7 +42,7 @@ var reduce =
         }
         return value;
       };
-
+/* @ifdef EVAL */
 // detect incorrectly implemented bind and if found use polyfill
 // https://github.com/snapwich/fun-hooks/issues/1
 var bind =
@@ -59,21 +57,7 @@ var bind =
           return self.apply(bind, args.concat(rest(arguments)));
         };
       };
-
-function assign(target) {
-  return reduce.call(
-    rest(arguments, 1),
-    function(target, obj) {
-      if (obj) {
-        Object.keys(obj).forEach(function(prop) {
-          target[prop] = obj[prop];
-        });
-      }
-      return target;
-    },
-    target
-  );
-}
+/* @endif */
 
 function rest(args, skip) {
   return Array.prototype.slice.call(args, skip);
@@ -91,7 +75,7 @@ function create(config) {
   var hooks = {};
   var postReady = [];
 
-  config = assign({}, defaults, config);
+  config = Object.assign({}, defaults, config);
 
   function dispatch(arg1, arg2) {
     if (typeof arg1 === "function") {
@@ -143,7 +127,7 @@ function create(config) {
         }
       });
       obj = Object.getPrototypeOf(obj);
-    } while (walk && obj !== baseObj);
+    } while (walk && obj);
     return objHooks;
   }
 
@@ -215,7 +199,7 @@ function create(config) {
             });
           });
         }
-        return assign(hooks, {
+        return Object.assign(hooks, {
           remove: function() {
             hooks.forEach(function(entry) {
               entry.remove();
@@ -282,13 +266,14 @@ function create(config) {
           ? handlers.apply(fn, this, rest(arguments))
           : fn.apply(this, arguments);
       };
-      assign(hookedFn, hookable);
+      Object.assign(hookedFn, hookable);
     }
 
     hookable.__funHook.install(type, hookedFn, generateTrap);
 
     return hookedFn;
 
+    /* @ifdef EVAL */
     function generateTrap(before, after) {
       if (before.length || after.length) {
         var code;
@@ -338,7 +323,7 @@ function create(config) {
           bind,
           before,
           after,
-          Object.assign || assign
+          Object.assign
         );
       } else {
         trap = undefined;
@@ -365,6 +350,68 @@ function create(config) {
         return code;
       }
     }
+    /* @endif */
+    /* @ifndef EVAL */
+    // eslint-disable-next-line no-redeclare
+    function generateTrap(before, after) {
+      var order = [];
+      var targetIndex;
+      if (before.length || after.length) {
+        before.forEach(addToOrder);
+        // placeholder for target function wrapper
+        targetIndex = order.push(undefined) - 1;
+        after.forEach(addToOrder);
+        trap = function(target, thisArg, args) {
+          var curr = 0;
+          var result;
+          var callback =
+            type === "async" &&
+            typeof args[args.length - 1] === "function" &&
+            args.pop();
+          function bail(value) {
+            if (type === "sync") {
+              result = value;
+            } else if (callback) {
+              callback.apply(null, arguments);
+            }
+          }
+          function next(value) {
+            if (order[curr]) {
+              var args = rest(arguments);
+              next.bail = bail;
+              args.unshift(next);
+              return order[curr++].apply(thisArg, args);
+            }
+            if (type === "sync") {
+              result = value;
+            } else if (callback) {
+              callback.apply(null, arguments);
+            }
+          }
+          order[targetIndex] = function() {
+            var args = rest(arguments, 1);
+            if (type === "async" && callback) {
+              delete next.bail;
+              args.push(next);
+            }
+            var result = target.apply(thisArg, args);
+            if (type === "sync") {
+              next(result);
+            }
+          };
+          next.apply(null, args);
+          return result;
+        };
+      } else {
+        trap = undefined;
+      }
+      setTrap();
+
+      function addToOrder(entry) {
+        order.push(entry.hook);
+      }
+    }
+    /* @endif */
 
     function setTrap() {
       if (
@@ -392,4 +439,5 @@ function create(config) {
   return dispatch;
 }
 
+/* global module */
 module.exports = create;

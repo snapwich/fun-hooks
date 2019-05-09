@@ -12,24 +12,29 @@
     "wrapper",
     "plugins"
   ],
-  "main": "index.js",
+  "main": "eval/index.js",
   "files": [
-    "index.js",
+    "eval/index.js",
+    "no-eval/index.js",
     "dist/fun-hooks.js",
     "dist/fun-hooks.min.js",
-    "dist/fun-hooks.min.js.map"
+    "dist/fun-hooks.min.js.map",
+    "dist/fun-hooks.no-eval.js",
+    "dist/fun-hooks.no-eval.min.js",
+    "dist/fun-hooks.no-eval.min.js.map"
   ],
   "unpkg": "dist/fun-hooks.min.js",
   "scripts": {
     "test": "jest",
+    "test:debug": "cross-env DEBUG=true node --inspect-brk ./node_modules/jest/bin/jest.js --runInBand .",
     "test:coverage": "jest --coverage --coverageReporters=text-lcov | env-cmd coveralls",
-    "test:debug": "node --inspect-brk ./node_modules/jest/bin/jest.js --runInBand .",
-    "lint": "eslint *.js",
-    "prettier": "prettier --write \"{*.js,json,md}\" --end-of-line lf",
-    "bundle": "node scripts/bundle.js",
+    "lint": "eslint index.js index.test.js scripts/*.js",
+    "prettier": "prettier --write \"{.,scripts}/{*.js,json,md}\" --end-of-line lf",
+    "bundle": "node scripts/bundle.js --output",
     "validate": "npm run lint && npm run test",
+    "cleanup": "node scripts/cleanup.js",
     "prepare": "npm run validate && npm run bundle",
-    "publish": "npm run test:coverage"
+    "publish": "npm run test:coverage && npm run cleanup"
   },
   "repository": {
     "type": "git",
@@ -37,15 +42,21 @@
   },
   "author": "Rich Snapp @snapwich",
   "license": "MIT",
+  "dependencies": {},
   "devDependencies": {
+    "cross-env": "^5.2.0",
     "coveralls": "^3.0.3",
     "env-cmd": "^9.0.1",
     "eslint": "^5.10.0",
     "eslint-plugin-jest": "^22.1.2",
     "eslint-plugin-prettier": "^3.0.1",
+    "eval": "^0.1.3",
     "jest": "^23.6.0",
     "mkdirp": "^0.5.1",
+    "preprocess": "^3.1.0",
     "prettier": "^1.16.4",
-    "terser": "^3.16.1"
+    "shelljs": "^0.8.3",
+    "terser": "^3.16.1",
+    "yargs": "^13.2.2"
   }
 }
