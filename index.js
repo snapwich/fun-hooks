@@ -63,6 +63,23 @@ function rest(args, skip) {
   return Array.prototype.slice.call(args, skip);
 }
 
+var assign =
+  Object.assign ||
+  function assign(target) {
+    return reduce.call(
+      rest(arguments, 1),
+      function(target, obj) {
+        if (obj) {
+          Object.keys(obj).forEach(function(prop) {
+            target[prop] = obj[prop];
+          });
+        }
+        return target;
+      },
+      target
+    );
+  };
+
 function runAll(queue) {
   var queued;
   // eslint-disable-next-line no-cond-assign
@@ -75,7 +92,7 @@ function create(config) {
   var hooks = {};
   var postReady = [];
 
-  config = Object.assign({}, defaults, config);
+  config = assign({}, defaults, config);
 
   function dispatch(arg1, arg2) {
     if (typeof arg1 === "function") {
@@ -199,7 +216,7 @@ function create(config) {
             });
           });
         }
-        return Object.assign(hooks, {
+        return assign(hooks, {
           remove: function() {
             hooks.forEach(function(entry) {
               entry.remove();
@@ -266,7 +283,7 @@ function create(config) {
           ? handlers.apply(fn, this, rest(arguments))
           : fn.apply(this, arguments);
       };
-      Object.assign(hookedFn, hookable);
+      assign(hookedFn, hookable);
     }
 
     hookable.__funHook.install(type, hookedFn, generateTrap);
@@ -323,7 +340,7 @@ function create(config) {
           bind,
           before,
           after,
-          Object.assign
+          assign
         );
       } else {
         trap = undefined;
