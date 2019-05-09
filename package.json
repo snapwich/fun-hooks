@@ -22,12 +22,14 @@
   "unpkg": "dist/fun-hooks.min.js",
   "scripts": {
     "test": "jest",
+    "test:coverage": "jest --coverage --coverageReporters=text-lcov | env-cmd coveralls",
     "test:debug": "node --inspect-brk ./node_modules/jest/bin/jest.js --runInBand .",
     "lint": "eslint *.js",
     "prettier": "prettier --write \"{*.js,json,md}\" --end-of-line lf",
     "bundle": "node scripts/bundle.js",
     "validate": "npm run lint && npm run test",
-    "prepare": "npm run validate && npm run bundle"
+    "prepare": "npm run validate && npm run bundle",
+    "publish": "npm run test:coverage"
   },
   "repository": {
     "type": "git",
@@ -36,6 +38,8 @@
   "author": "Rich Snapp @snapwich",
   "license": "MIT",
   "devDependencies": {
+    "coveralls": "^3.0.3",
+    "env-cmd": "^9.0.1",
     "eslint": "^5.10.0",
     "eslint-plugin-jest": "^22.1.2",
     "eslint-plugin-prettier": "^3.0.1",
