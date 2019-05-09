@@ -1,5 +1,4 @@
 [![Build Status](https://circleci.com/gh/snapwich/fun-hooks.svg?style=svg)](https://circleci.com/gh/snapwich/fun-hooks)
-[![Coverage Status](https://coveralls.io/repos/github/snapwich/fun-hooks/badge.svg)](https://coveralls.io/github/snapwich/fun-hooks)
 
 # Fun Hooks
 ## Installation

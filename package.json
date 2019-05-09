@@ -2,6 +2,8 @@
   "name": "fun-hooks",
   "version": "0.8.1",
   "description": "A generalized and simple hooking API for adding extensibility to applications",
+  "author": "Rich Snapp @snapwich",
+  "license": "MIT",
   "keywords": [
     "hooks",
     "middleware",
@@ -27,21 +29,18 @@
   "scripts": {
     "test": "jest",
     "test:debug": "cross-env DEBUG=true node --inspect-brk ./node_modules/jest/bin/jest.js --runInBand .",
-    "test:coverage": "jest --coverage --coverageReporters=text-lcov | env-cmd coveralls",
     "lint": "eslint index.js index.test.js scripts/*.js",
     "prettier": "prettier --write \"{.,scripts}/{*.js,json,md}\" --end-of-line lf",
     "bundle": "node scripts/bundle.js --output",
     "validate": "npm run lint && npm run test",
     "cleanup": "node scripts/cleanup.js",
     "prepare": "npm run validate && npm run bundle",
-    "publish": "npm run test:coverage && npm run cleanup"
+    "publish": "npm run cleanup"
   },
   "repository": {
     "type": "git",
     "url": "https://github.com/snapwich/fun-hooks"
   },
-  "author": "Rich Snapp @snapwich",
-  "license": "MIT",
   "dependencies": {},
   "devDependencies": {
     "cross-env": "^5.2.0",
