@@ -26,7 +26,8 @@
     "lint": "eslint *.js",
     "prettier": "prettier --write \"{*.js,json,md}\" --end-of-line lf",
     "bundle": "node scripts/bundle.js",
-    "prepare": "npm run lint && npm run test && npm run bundle"
+    "validate": "npm run lint && npm run test",
+    "prepare": "npm run validate && npm run bundle"
   },
   "repository": {
     "type": "git",
