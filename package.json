@@ -16,6 +16,7 @@
   ],
   "main": "eval/index.js",
   "files": [
+    "index.js",
     "eval/index.js",
     "no-eval/index.js",
     "dist/fun-hooks.js",
