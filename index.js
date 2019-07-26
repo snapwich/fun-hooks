@@ -4,10 +4,12 @@ create.QUEUE = 4;
 
 var packageName = "fun-hooks";
 
-var hasProxy = !!(typeof Proxy === "function" && Proxy.revocable);
+function hasProxy() {
+  return !!(typeof Proxy === "function" && Proxy.revocable);
+}
 
 var defaults = Object.freeze({
-  useProxy: hasProxy,
+  useProxy: true,
   ready: 0
 });
 
@@ -275,7 +277,7 @@ function create(config) {
       postReady.push(setTrap);
     }
 
-    if (config.useProxy) {
+    if (config.useProxy && hasProxy()) {
       hookedFn = new Proxy(fn, handlers);
     } else {
       hookedFn = function() {
