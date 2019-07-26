@@ -4,7 +4,7 @@ create.QUEUE = 4;
 
 var packageName = "fun-hooks";
 
-var hasProxy = typeof Proxy === "function";
+var hasProxy = !!(typeof Proxy === "function" && Proxy.revocable);
 
 var defaults = Object.freeze({
   useProxy: hasProxy,
