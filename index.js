@@ -11,6 +11,8 @@ var defaults = Object.freeze({
   ready: 0
 });
 
+var hookableMap = new WeakMap();
+
 // detect incorrectly implemented reduce and if found use polyfill
 // https://github.com/prebid/Prebid.js/issues/3576
 // polyfill from: https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Array/Reduce
@@ -191,16 +193,7 @@ function create(config) {
     var after = [];
     var generateTrap = function() {};
 
-    return {
-      __funHook: {
-        install: function(type, fn, generate) {
-          this.type = type;
-          this.fn = fn;
-          generateTrap = generate;
-          generate(before, after);
-          onInstall && onInstall(fn);
-        }
-      },
+    var api = {
       before: function(hook, priority) {
         return add.call(this, before, "before", hook, priority);
       },
@@ -230,6 +223,20 @@ function create(config) {
       }
     };
 
+    var meta = {
+      install: function(type, fn, generate) {
+        this.type = type;
+        generateTrap = generate;
+        generate(before, after);
+        onInstall && onInstall(fn);
+      }
+    };
+
+    // store meta data related to hookable. use `api.after` since `api` reference is not available on our proxy.
+    hookableMap.set(api.after, meta);
+
+    return api;
+
     function add(store, type, hook, priority) {
       var entry = {
         hook: hook,
@@ -253,11 +260,13 @@ function create(config) {
   }
 
   function hookFn(type, fn, name) {
-    if (fn.__funHook) {
-      if (fn.__funHook.type !== type) {
+    // check if function has already been wrapped
+    var meta = fn.after && hookableMap.get(fn.after);
+    if (meta) {
+      if (meta.type !== type) {
         throw packageName + ": recreated hookable with different type";
       } else {
-        return fn.__funHook.fn;
+        return fn;
       }
     }
 
@@ -286,7 +295,7 @@ function create(config) {
       assign(hookedFn, hookable);
     }
 
-    hookable.__funHook.install(type, hookedFn, generateTrap);
+    hookableMap.get(hookedFn.after).install(type, hookedFn, generateTrap);
 
     return hookedFn;
 
