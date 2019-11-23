@@ -15,8 +15,10 @@
     "plugins"
   ],
   "main": "eval/index.js",
+  "types": "index.d.ts",
   "files": [
     "index.js",
+    "index.d.ts",
     "eval/index.js",
     "no-eval/index.js",
     "dist/fun-hooks.js",
@@ -31,7 +33,7 @@
     "test": "jest",
     "test:debug": "cross-env DEBUG=true node --inspect-brk ./node_modules/jest/bin/jest.js --runInBand .",
     "lint": "eslint index.js index.test.js scripts/*.js",
-    "prettier": "prettier --write \"{.,scripts}/{*.js,json,md}\" --end-of-line lf",
+    "prettier": "prettier --write \"{.,scripts}/{*.js,*.d.ts,json,md}\" --end-of-line lf",
     "bundle": "node scripts/bundle.js --output",
     "validate": "npm run lint && npm run test",
     "cleanup": "node scripts/cleanup.js",
@@ -42,7 +44,9 @@
     "type": "git",
     "url": "https://github.com/snapwich/fun-hooks"
   },
-  "dependencies": {},
+  "dependencies": {
+    "typescript-tuple": "^2.2.1"
+  },
   "devDependencies": {
     "cross-env": "^5.2.0",
     "eslint": "^5.10.0",

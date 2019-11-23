@@ -409,6 +409,14 @@ describe.each(creates)("%s", (_, create) => {
         hookedAsyncFn(1, 2);
         expectCalled(before, 3);
         expect(asyncFn).toBeCalledWith(4, 5);
+
+        clearMocks(before);
+        hookedAsyncFn.before(function(next) {
+          next.bail();
+        });
+        hookedAsyncFn(1, 2);
+        expectCalled(before, 0);
+        expect(asyncFn).not.toBeCalled();
       });
 
       test("hooks work correctly after removing", () => {
