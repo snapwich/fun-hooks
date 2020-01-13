@@ -34,25 +34,33 @@ export interface AfterAsync<T extends Fn> {
 
 export type SyncHook<T extends Fn> = T & {
   before: (
-    hook: (next: BeforeSync<T>, ...args: Parameters<T>) => void
+    hook: (next: BeforeSync<T>, ...args: Parameters<T>) => void,
+    priority?: number
   ) => SyncHook<T>;
   after: (
-    hook: (next: AfterSync<T>, returnValue: ReturnType<T>) => void
+    hook: (next: AfterSync<T>, returnValue: ReturnType<T>) => void,
+    priority?: number
   ) => SyncHook<T>;
 };
 
 export type AsyncHookCallback<T extends Fn, Cb extends Fn> = T & {
   before: (
-    hook: (next: BeforeAsync<T, Cb>, ...args: RemoveLast<Parameters<T>>) => void
+    hook: (
+      next: BeforeAsync<T, Cb>,
+      ...args: RemoveLast<Parameters<T>>
+    ) => void,
+    priority?: number
   ) => AsyncHookCallback<T, Cb>;
   after: (
-    hook: (next: AfterAsync<Cb>, ...args: Parameters<Cb>) => void
+    hook: (next: AfterAsync<Cb>, ...args: Parameters<Cb>) => void,
+    priority?: number
   ) => SyncHook<T>;
 };
 
 export type AsyncHookNoCallback<T extends Fn> = T & {
   before: (
-    hook: (next: BeforeAsyncNoCallback<T>, ...args: Parameters<T>) => void
+    hook: (next: BeforeAsyncNoCallback<T>, ...args: Parameters<T>) => void,
+    priority?: number
   ) => AsyncHookNoCallback<T>;
 };
 
