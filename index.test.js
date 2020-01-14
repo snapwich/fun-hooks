@@ -689,7 +689,7 @@ describe.each(creates)("%s", (_, create) => {
 
         console.warn = oldWarn;
 
-        /* eslint-enable no-conosle */
+        /* eslint-enable no-console */
       });
 
       test("will not wrap hooks more than once", () => {

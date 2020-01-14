@@ -3,7 +3,7 @@ module.exports = {
     browser: true,
     commonjs: true,
     es6: true,
-    "jest/globals": true
+    jest: true
   },
   extends: "eslint:recommended",
   plugins: ["jest", "prettier"],
@@ -12,6 +12,7 @@ module.exports = {
   },
   rules: {
     "prettier/prettier": "error",
-    "linebreak-style": ["error", "unix"]
+    "linebreak-style": ["error", "unix"],
+    "no-redeclare": ["error", {builtinGlobals: false}]
   }
 };
