@@ -1,6 +1,6 @@
 {
   "name": "fun-hooks",
-  "version": "0.9.8",
+  "version": "0.9.9",
   "description": "A generalized and simple hooking API for adding extensibility to applications",
   "author": "Rich Snapp @snapwich",
   "license": "MIT",
