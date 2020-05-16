@@ -211,14 +211,21 @@ function create(config) {
             });
           });
         }
-        return assign(hooks, {
-          remove: function() {
-            hooks.forEach(function(entry) {
-              entry.remove();
-            });
-            return this;
-          }
-        });
+        try {
+          assign(hooks, {
+            remove: function() {
+              hooks.forEach(function(entry) {
+                entry.remove();
+              });
+              return this;
+            }
+          });
+        } catch (e) {
+          console.error(
+            "error adding `remove` to array, did you modify Array.prototype?"
+          );
+        }
+        return hooks;
       },
       removeAll: function() {
         return this.getHooks().remove();
