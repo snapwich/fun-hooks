@@ -13,6 +13,6 @@ module.exports = {
   rules: {
     "prettier/prettier": "error",
     "linebreak-style": ["error", "unix"],
-    "no-redeclare": ["error", {builtinGlobals: false}]
+    "no-redeclare": ["error", { builtinGlobals: false }]
   }
 };
