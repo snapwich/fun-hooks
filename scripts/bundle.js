@@ -98,11 +98,8 @@ if (argv.output) {
   Promise.all(
     _.map(output, (code, name) => {
       let file = path.join(outDir, name);
-      return new Promise((resolve, reject) => {
-        mkdirp(path.dirname(file), err => {
-          if (err) {
-            return reject(err);
-          }
+      return mkdirp(path.dirname(file)).then(() => {
+        return new Promise((resolve, reject) => {
           fs.writeFile(file, code, "utf-8", err => {
             if (err) {
               return reject(err);
