@@ -32,37 +32,55 @@ export interface AfterAsync<T extends Fn> {
   bail: (...args: Parameters<T>) => void;
 }
 
-export type SyncHook<T extends Fn> = T & {
-  before: (
-    hook: (next: BeforeSync<T>, ...args: Parameters<T>) => void,
-    priority?: number
-  ) => SyncHook<T>;
-  after: (
-    hook: (next: AfterSync<T>, returnValue: ReturnType<T>) => void,
-    priority?: number
-  ) => SyncHook<T>;
-};
+export interface HookGetter {
+  getHooks(
+    matcher?:
+      | {
+          type: "before" | "after";
+        }
+      | {
+          hook: Fn;
+        }
+  ): Array<Fn> & {
+    remove(): void;
+  };
+  removeAll(): void;
+}
 
-export type AsyncHookCallback<T extends Fn, Cb extends Fn> = T & {
-  before: (
-    hook: (
-      next: BeforeAsync<T, Cb>,
-      ...args: RemoveLast<Parameters<T>>
-    ) => void,
-    priority?: number
-  ) => AsyncHookCallback<T, Cb>;
-  after: (
-    hook: (next: AfterAsync<Cb>, ...args: Parameters<Cb>) => void,
-    priority?: number
-  ) => SyncHook<T>;
-};
+export type SyncHook<T extends Fn> = T &
+  HookGetter & {
+    before: (
+      hook: (next: BeforeSync<T>, ...args: Parameters<T>) => void,
+      priority?: number
+    ) => SyncHook<T>;
+    after: (
+      hook: (next: AfterSync<T>, returnValue: ReturnType<T>) => void,
+      priority?: number
+    ) => SyncHook<T>;
+  };
 
-export type AsyncHookNoCallback<T extends Fn> = T & {
-  before: (
-    hook: (next: BeforeAsyncNoCallback<T>, ...args: Parameters<T>) => void,
-    priority?: number
-  ) => AsyncHookNoCallback<T>;
-};
+export type AsyncHookCallback<T extends Fn, Cb extends Fn> = T &
+  HookGetter & {
+    before: (
+      hook: (
+        next: BeforeAsync<T, Cb>,
+        ...args: RemoveLast<Parameters<T>>
+      ) => void,
+      priority?: number
+    ) => AsyncHookCallback<T, Cb>;
+    after: (
+      hook: (next: AfterAsync<Cb>, ...args: Parameters<Cb>) => void,
+      priority?: number
+    ) => SyncHook<T>;
+  };
+
+export type AsyncHookNoCallback<T extends Fn> = T &
+  HookGetter & {
+    before: (
+      hook: (next: BeforeAsyncNoCallback<T>, ...args: Parameters<T>) => void,
+      priority?: number
+    ) => AsyncHookNoCallback<T>;
+  };
 
 export interface CreateHook {
   <T extends Fn>(fn: T): SyncHook<T>;
