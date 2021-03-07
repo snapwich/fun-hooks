@@ -91,6 +91,7 @@ export interface CreateHook {
 }
 
 export interface HooksFactory {
+  (config?: { ready?: number }): CreateHook;
   SYNC: 1;
   ASYNC: 2;
   QUEUE: 4;
