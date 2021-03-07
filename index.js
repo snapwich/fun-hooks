@@ -14,19 +14,6 @@ function rest(args, skip) {
   return Array.prototype.slice.call(args, skip);
 }
 
-var assign =
-  Object.assign ||
-  function assign(target) {
-    return rest(arguments, 1).reduce(function(target, obj) {
-      if (obj) {
-        Object.keys(obj).forEach(function(prop) {
-          target[prop] = obj[prop];
-        });
-      }
-      return target;
-    }, target);
-  };
-
 function runAll(queue) {
   var queued;
   // eslint-disable-next-line no-cond-assign
@@ -39,7 +26,7 @@ function create(config) {
   var hooks = {};
   var postReady = [];
 
-  config = assign({}, defaults, config);
+  config = Object.assign({}, defaults, config);
 
   function dispatch(arg1, arg2) {
     if (typeof arg1 === "function") {
@@ -151,7 +138,7 @@ function create(config) {
           });
         }
         try {
-          assign(hooks, {
+          Object.assign(hooks, {
             remove: function() {
               hooks.forEach(function(entry) {
                 entry.remove();
@@ -287,7 +274,7 @@ function create(config) {
           Function.prototype.bind,
           before,
           after,
-          assign
+          Object.assign
         );
       } else {
         trap = undefined;
