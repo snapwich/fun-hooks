@@ -4,64 +4,11 @@ create.QUEUE = 4;
 
 var packageName = "fun-hooks";
 
-function hasProxy() {
-  return !!(typeof Proxy === "function" && Proxy.revocable);
-}
-
 var defaults = Object.freeze({
-  useProxy: true,
   ready: 0
 });
 
 var hookableMap = new WeakMap();
-
-// detect incorrectly implemented reduce and if found use polyfill
-// https://github.com/prebid/Prebid.js/issues/3576
-// polyfill from: https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Array/Reduce
-var reduce =
-  [1]
-    .reduce(function(a, b, c) {
-      return [a, b, c];
-    }, 2)
-    .toString() === "2,1,0"
-    ? Array.prototype.reduce
-    : function(callback, initial) {
-        var o = Object(this);
-        var len = o.length >>> 0;
-        var k = 0;
-        var value;
-        if (initial) {
-          value = initial;
-        } else {
-          while (k < len && !(k in o)) {
-            k++;
-          }
-          value = o[k++];
-        }
-        while (k < len) {
-          if (k in o) {
-            value = callback(value, o[k], k, o);
-          }
-          k++;
-        }
-        return value;
-      };
-/* @ifdef EVAL */
-// detect incorrectly implemented bind and if found use polyfill
-// https://github.com/snapwich/fun-hooks/issues/1
-var bind =
-  function(a, b) {
-    return b;
-  }.bind(null, 1, 4)() === 4
-    ? Function.prototype.bind
-    : function(bind) {
-        var self = this;
-        var args = rest(arguments, 1);
-        return function() {
-          return self.apply(bind, args.concat(rest(arguments)));
-        };
-      };
-/* @endif */
 
 function rest(args, skip) {
   return Array.prototype.slice.call(args, skip);
@@ -70,18 +17,14 @@ function rest(args, skip) {
 var assign =
   Object.assign ||
   function assign(target) {
-    return reduce.call(
-      rest(arguments, 1),
-      function(target, obj) {
-        if (obj) {
-          Object.keys(obj).forEach(function(prop) {
-            target[prop] = obj[prop];
-          });
-        }
-        return target;
-      },
-      target
-    );
+    return rest(arguments, 1).reduce(function(target, obj) {
+      if (obj) {
+        Object.keys(obj).forEach(function(prop) {
+          target[prop] = obj[prop];
+        });
+      }
+      return target;
+    }, target);
   };
 
 function runAll(queue) {
@@ -158,36 +101,32 @@ function create(config) {
    */
   function get(path) {
     var parts = Array.isArray(path) ? path : path.split(".");
-    return reduce.call(
-      parts,
-      function(memo, part, i) {
-        var item = memo[part];
-        var installed = false;
-        if (item) {
-          return item;
-        } else if (i === parts.length - 1) {
-          if (!ready) {
-            postReady.push(function() {
-              if (!installed) {
-                // eslint-disable-next-line no-console
-                console.warn(
-                  packageName +
-                    ": referenced '" +
-                    path +
-                    "' but it was never created"
-                );
-              }
-            });
-          }
-          return (memo[part] = newHookable(function(fn) {
-            memo[part] = fn;
-            installed = true;
-          }));
+    return parts.reduce(function(memo, part, i) {
+      var item = memo[part];
+      var installed = false;
+      if (item) {
+        return item;
+      } else if (i === parts.length - 1) {
+        if (!ready) {
+          postReady.push(function() {
+            if (!installed) {
+              // eslint-disable-next-line no-console
+              console.warn(
+                packageName +
+                  ": referenced '" +
+                  path +
+                  "' but it was never created"
+              );
+            }
+          });
         }
-        return (memo[part] = {});
-      },
-      hooks
-    );
+        return (memo[part] = newHookable(function(fn) {
+          memo[part] = fn;
+          installed = true;
+        }));
+      }
+      return (memo[part] = {});
+    }, hooks);
   }
 
   function newHookable(onInstall) {
@@ -282,7 +221,7 @@ function create(config) {
     var hookable = name ? get(name) : newHookable();
 
     var trap;
-    var hookedFn;
+
     var handlers = {
       get: function(target, prop) {
         return hookable[prop] || Reflect.get.apply(Reflect, arguments);
@@ -293,16 +232,7 @@ function create(config) {
       postReady.push(setTrap);
     }
 
-    if (config.useProxy && hasProxy()) {
-      hookedFn = new Proxy(fn, handlers);
-    } else {
-      hookedFn = function() {
-        return handlers.apply
-          ? handlers.apply(fn, this, rest(arguments))
-          : fn.apply(this, arguments);
-      };
-      assign(hookedFn, hookable);
-    }
+    var hookedFn = new Proxy(fn, handlers);
 
     hookableMap.get(hookedFn.after).install(type, hookedFn, generateTrap);
 
@@ -352,10 +282,9 @@ function create(config) {
             chainHooks(before, "b", code)
           ].join(";");
         }
-        trap = bind.call(
-          new Function("i,b,a,n,t,h,g", code),
+        trap = new Function("i,b,a,n,t,h,g", code).bind(
           null,
-          bind,
+          Function.prototype.bind,
           before,
           after,
           assign

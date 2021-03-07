@@ -91,7 +91,6 @@ export interface CreateHook {
 }
 
 export interface HooksFactory {
-  (config?: { useProxy?: boolean; ready?: number }): CreateHook;
   SYNC: 1;
   ASYNC: 2;
   QUEUE: 4;

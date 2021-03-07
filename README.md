@@ -19,23 +19,24 @@ The goals of this library are the following (in priority order):
   3. [Simple but powerful API](#usage)
   4. [Limited footprint](#footprint)
 
+### Compatibility for older environments
+If you will be running fun-hooks in an environment that doesn't support the use of [Proxy](https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Proxy#browser_compatibility)
+objects or you are using MooTools, Prototype.js, or some other old school js library that incorrectly patches Array and 
+Function prototype methods, you should use the latest [0.9.x version of fun-hooks](https://github.com/snapwich/fun-hooks/tree/legacy/0.9.x) 
+that includes the appropriate compatibility polyfills.
+
 ## Usage
 Hooks follow the same format whether they're `sync` or `async` and whether they're `before` or `after` hooks; however, 
 it's important to remember that `sync` `after` hooks act on the _return_ result and `async` `after` hooks act on the 
 _callback's_ arguments.
 
 ### Configuration
-  - **useProxy** : boolean - (Optional, default: **true**) Whether to use 
-  [Proxy](https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Proxy) or a wrapper 
-  function for hooked functions.  
-  _Note: if `Proxy` is unavailable then the library will automatically fallback to using wrapper functions._
   - **ready** : number - (Optional, default: **0** (meaning no `ready()` call required)) See [Ready](#ready).
 ```javascript
 import funHooks from "fun-hooks";    // es6 (using webpack or babel)
 let funHooks = require("fun-hooks"); // or in node
 let funHooks = window.funHooks;      // or directly in browser from somewhere like https://unpkg.com/fun-hooks@latest
 let createHook = funHooks({
-  useProxy: false,
   ready: funHooks.ASYNC | funHooks.QUEUE
 });
 ```
@@ -362,8 +363,7 @@ Proxy forwarding is also much more performant than a function wrapper* (in a bro
 doesn't seem to be the case, but will probably change as Proxies are further optimized).
 
 ### Footprint
-Since this hooking library is written for Browsers first (as opposed to many in NPM which are expected to run in a Node
-environment) the footprint and API is being kept as slim as possible.
+Since this hooking library is written for Browsers first the footprint and API is kept as slim as possible.
 
 ### Code readability
 Currently parts of this library are not very readable. Since much of the code is dynamically generated (using 
@@ -388,7 +388,6 @@ breaks this convention for a two reasons.
  to the hooked function's interface and needs to be refactored if the interface changes)
 
 ## Development
-(tests require Node v10.0.0+ for util.types.isProxy check)
 ```bash
 npm run test 
 # or with debugging
