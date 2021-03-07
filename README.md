@@ -377,7 +377,7 @@ It is a common convention in Javascript to pass callbacks as the last argument t
 breaks this convention for a two reasons.
 
  1. Javascript provides `Funciton.prototype.bind` to set `this` as well as for providing partial function application. 
- `fun-hooks` uses this feature extensively in order to to stack the hooks in such a way that they directly call
+ `fun-hooks` uses this feature extensively in order to stack the hooks in such a way that they directly call
  each other. However, `bind` only allows partially applying arguments starting from the left. If the `next` callback 
  were the last argument, this would require each hook being wrapped in another function to perform _right_ partial
  function application. (this is actually what is done for the hooked `async` function itself since it will have 
