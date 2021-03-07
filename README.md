@@ -389,6 +389,16 @@ breaks this convention for a two reasons.
  about function arity. (i.e. `(next, ...args) => { doSomething(); next.apply(null, args) }` is easy and still works 
  if parameters are added to the function, whereas `(a, b, next) => { doSomething(); next.call(null, a, b) }` is coupled 
  to the hooked function's interface and needs to be refactored if the interface changes)
+ 
+### CSP (Content Security Policy) considerations
+Since this library uses `new Function` you may need to allow for `'unsafe-eval'` if your website uses a 
+[CSP policy](https://developer.mozilla.org/en-US/docs/Web/HTTP/CSP) (Node.js users need not worry). Technically the way 
+this library uses `new Function` is safe, but what can you do... If you use CSP and cannot apply `'unsafe-eval'` then 
+there is a "no-eval" version available at the cost of some overhead. You can use it with the following import:
+
+```
+import funHooks from 'fun-hooks/no-eval/index.js'
+```
 
 ## Development
 ```bash
