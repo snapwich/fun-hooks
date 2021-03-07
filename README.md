@@ -178,7 +178,11 @@ hookedIncrement.before(function sideEffect(next, ...args) {
 Hooks can be given a name and then accessed using the `.get` method.  This can be useful for defining the 
 extensible API for your application.  _Note: You can also just expose references to the hooked functions themselves, 
 this is just a convenience.  Also, when using named hooks, you can reference the hook by name using `.get` and add 
-`before` and `after` hooks before the hook itself has actually been created!_
+`before` and `after` hooks before the hook itself has actually been created!
+
+_Note: For Typescript users, the `.get` function requires a type parameter defining the type of hook to expect.
+Type helpers are exported as `SyncHook<T>` and `AsyncHook<T>` where `T` is the hooked function signature. If you want
+Typescript to infer proper types then you should just expose references to the hooked function themselves._
 
 ```javascript
 // some-applicaiton

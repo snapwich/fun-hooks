@@ -59,6 +59,10 @@ export type SyncHook<T extends Fn> = T &
     ) => SyncHook<T>;
   };
 
+export type AsyncHook<T extends Fn> = LastParameter<T> extends Fn
+  ? AsyncHookCallback<T, LastParameter<T>>
+  : AsyncHookNoCallback<T>;
+
 export type AsyncHookCallback<T extends Fn, Cb extends Fn> = T &
   HookGetter & {
     before: (
@@ -85,9 +89,8 @@ export type AsyncHookNoCallback<T extends Fn> = T &
 export interface CreateHook {
   <T extends Fn>(fn: T): SyncHook<T>;
   <T extends Fn>(type: "sync", fn: T): SyncHook<T>;
-  <T extends Fn>(type: "async", fn: T): LastParameter<T> extends Fn
-    ? AsyncHookCallback<T, LastParameter<T>>
-    : AsyncHookNoCallback<T>;
+  <T extends Fn>(type: "async", fn: T): AsyncHook<T>;
+  get<T>(name: string): T;
 }
 
 export interface HooksFactory {
