@@ -7,10 +7,9 @@ npm install fun-hooks
 ```
 
 ## Motivation
-Fun(ctional) Hooks is an attempt to make a generalized and simple hooking API for the intent of designing runtime 
-extensible applications. This function-based approach operates on functions themselves rather than object methods to 
-be fully compatible with purely functional code, but still maintains some convenience operations for dealing with 
-object-oriented code.
+Fun(ctional) Hooks is a generalized and simple hooking API for creating runtime extensible applications. This 
+function-based approach operates on functions themselves rather than object methods to be fully compatible with purely 
+functional code, but still maintains some convenience operations for dealing with object-oriented code.
 
 The goals of this library are the following (in priority order):
 
