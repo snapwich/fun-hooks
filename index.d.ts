@@ -88,8 +88,8 @@ export type AsyncHookNoCallback<T extends Fn> = T &
 
 export interface CreateHook {
   <T extends Fn>(fn: T): SyncHook<T>;
-  <T extends Fn>(type: "sync", fn: T): SyncHook<T>;
-  <T extends Fn>(type: "async", fn: T): AsyncHook<T>;
+  <T extends Fn>(type: "sync", fn: T, name?: string): SyncHook<T>;
+  <T extends Fn>(type: "async", fn: T, name?: string): AsyncHook<T>;
   get<T>(name: string): T;
 }
 
