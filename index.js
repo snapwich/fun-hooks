@@ -51,24 +51,21 @@ function create(config) {
   function hookObj(obj, props, objName) {
     var walk = true;
     if (typeof props === "undefined") {
-      props = Object.getOwnPropertyNames(obj);
+      props = Object.getOwnPropertyNames(obj).filter(prop => !prop.match(/^_/));
       walk = false;
     }
     var objHooks = {};
     var doNotHook = ["constructor"];
     do {
-      props = props.filter(function(prop) {
-        return (
-          typeof obj[prop] === "function" &&
-          !(doNotHook.indexOf(prop) !== -1) &&
-          !prop.match(/^_/)
-        );
-      });
       props.forEach(function(prop) {
-        var parts = prop.split(":");
-        var name = parts[0];
+        var parts = prop.match(/(?:(sync|async):)?(.+)/);
         var type = parts[1] || "sync";
-        if (!objHooks[name]) {
+        var name = parts[2];
+        if (
+          !objHooks[name] &&
+          typeof obj[name] === "function" &&
+          !(doNotHook.indexOf(name) !== -1)
+        ) {
           var fn = obj[name];
           objHooks[name] = obj[name] = hookFn(
             type,

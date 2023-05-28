@@ -560,30 +560,50 @@ describe.each(creates)("%s", (_, create) => {
     hook.get("myObj.someFun").after(function(cb, result) {
       cb(result + 1);
     });
+    hook.get("myObj.someFun2").after(function(cb, result) {
+      cb(result + 2);
+    });
 
     let obj = Object.create({
       someFun() {
         return 1;
       },
-      someFun2() {},
+      someFun2(cb) {
+        cb(2);
+      },
       someFun3() {}
     });
-    obj.someFun4 = function() {};
+    obj.someFun4 = function() {
+      return 3;
+    };
     obj.someFun5 = function() {};
 
-    let hooks = hook(obj, ["someFun", "someFun2", "someFun4"], "myObj");
+    let hooks = hook(
+      obj,
+      ["someFun", "async:someFun2", "sync:someFun4"],
+      "myObj"
+    );
+
+    obj.someFun4.after(function(cb, result) {
+      cb(result + 1);
+    });
 
     expect(hooks["someFun"]).toEqual(obj.someFun);
     expect(typeof obj.someFun.before).toEqual("function");
     expect(typeof obj.someFun.after).toEqual("function");
+    expect(obj.someFun()).toEqual(2);
     expect(hooks["someFun2"]).toEqual(obj.someFun2);
     expect(typeof obj.someFun2.before).toEqual("function");
     expect(typeof obj.someFun2.after).toEqual("function");
+    obj.someFun2(result => {
+      expect(result).toEqual(4);
+    });
     expect(obj.someFun3.before).toBeUndefined();
     expect(obj.someFun3.after).toBeUndefined();
     expect(hooks["someFun4"]).toEqual(obj.someFun4);
     expect(typeof obj.someFun4.before).toEqual("function");
     expect(typeof obj.someFun4.after).toEqual("function");
+    expect(obj.someFun4()).toEqual(4);
     expect(obj.someFun5.before).toBeUndefined();
     expect(obj.someFun5.after).toBeUndefined();
 
