@@ -121,8 +121,8 @@ hookedSum.removeAll(); // remove all before and after hooks
 ```
 
 ### Priority
-You can attach as many `before` or `after` hooks as you'd like to a function.  The order in which the hooks are ran is
-dependant on the order they're added or an optional `priority` argument set when creating the hook (which defaults 
+You can attach as many `before` or `after` hooks as you'd like to a function.  The order in which the hooks are run is
+dependent on the order they're added or an optional `priority` argument set when creating the hook (which defaults 
 to a priority of `10`).
 
 ```javascript
