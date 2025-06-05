@@ -66,9 +66,7 @@ console.log(result); // 4
 ```
 
 _Note: You should always use `sync` if you are returning a value.  This includes if you are returning a `Promise`.
-If you're hooking a function with `sync` your hooks **must** call `next` synchronously (e.g. no ajax).  Calling
-`next` asynchronously can lead to unpredictable behavior, including an `undefined` return value and incorrect
-arguments passed to subsequent hooks or the wrapped function._
+If you're hooking a function with `sync` your hooks **must** call `next` synchronously (e.g. no ajax).
 
 ### Async (`before`, `after`)
 ```javascript
