@@ -553,6 +553,34 @@ describe.each(creates)("%s", (_, create) => {
     expect(order).toEqual([1, 2, 3, 4, "fn", 5, 6, 7, 8, 9]);
   });
 
+  test("async calls to next in sync hooks should not mix arguments", () => {
+    jest.useFakeTimers();
+    let hook = create(config);
+    let log = [];
+
+    let hooked = hook("sync", a => {
+      log.push(["inner", a]);
+    });
+
+    hooked.before((next, a) => {
+      log.push(["outer", a]);
+      setTimeout(() => next(a), 0);
+    });
+
+    hooked(1);
+    hooked(2);
+
+    jest.runAllTimers();
+    jest.useRealTimers();
+
+    expect(log).toEqual([
+      ["outer", 1],
+      ["outer", 2],
+      ["inner", 1],
+      ["inner", 2]
+    ]);
+  });
+
   test("allows hooking objects (and prototypes)", () => {
     let hook = create(config);
 

@@ -310,6 +310,7 @@ function create(config) {
         targetIndex = order.push(undefined) - 1;
         after.forEach(addToOrder);
         trap = function(target, thisArg, args) {
+          var localOrder = order.slice();
           var curr = 0;
           var result;
           var callback =
@@ -324,11 +325,11 @@ function create(config) {
             }
           }
           function next(value) {
-            if (order[curr]) {
+            if (localOrder[curr]) {
               var args = rest(arguments);
               next.bail = bail;
               args.unshift(next);
-              return order[curr++].apply(thisArg, args);
+              return localOrder[curr++].apply(thisArg, args);
             }
             if (type === "sync") {
               result = value;
@@ -336,7 +337,7 @@ function create(config) {
               callback.apply(null, arguments);
             }
           }
-          order[targetIndex] = function() {
+          localOrder[targetIndex] = function() {
             var args = rest(arguments, 1);
             if (type === "async" && callback) {
               delete next.bail;
