@@ -1,4 +1,4 @@
-[![Build Status](https://circleci.com/gh/snapwich/fun-hooks.svg?style=svg)](https://circleci.com/gh/snapwich/fun-hooks)
+[![Validate](https://github.com/snapwich/fun-hooks/actions/workflows/validate.yml/badge.svg)](https://github.com/snapwich/fun-hooks/actions/workflows/validate.yml)
 
 # Fun Hooks
 ## Installation
