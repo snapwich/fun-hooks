@@ -581,7 +581,6 @@ describe.each(creates)("%s", (_, create) => {
     ]);
   });
 
-
   test("allows hooking objects (and prototypes)", () => {
     let hook = create(config);
 

@@ -90,7 +90,11 @@ export interface CreateHook {
   <T extends Fn>(fn: T): SyncHook<T>;
   <T extends Fn>(type: "sync", fn: T, name?: string): SyncHook<T>;
   <T extends Fn>(type: "async", fn: T, name?: string): AsyncHook<T>;
-  <Hooks extends {[key: string]: any}, T extends object = object>(obj: T, props: string[], name?: string): Hooks;
+  <Hooks extends { [key: string]: any }, T extends object = object>(
+    obj: T,
+    props: string[],
+    name?: string
+  ): Hooks;
   get<T>(name: string): T;
 }
 
