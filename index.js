@@ -16,7 +16,7 @@ function rest(args, skip) {
 
 function runAll(queue) {
   var queued;
-  // eslint-disable-next-line no-cond-assign
+
   while ((queued = queue.shift())) {
     queued();
   }
@@ -143,7 +143,9 @@ function create(config) {
               return this;
             }
           });
+          // eslint-disable-next-line no-unused-vars
         } catch (e) {
+          // eslint-disable-next-line no-console
           console.error(
             "error adding `remove` to array, did you modify Array.prototype?"
           );

@@ -691,7 +691,6 @@ describe.each(creates)("%s", (_, create) => {
 
   test("will display warning when a hook is referenced but never created before ready", () => {
     /* eslint-disable no-console */
-
     let hook = create(
       Object.assign(
         {
@@ -715,7 +714,6 @@ describe.each(creates)("%s", (_, create) => {
     expect(console.warn).toHaveBeenCalled();
 
     console.warn = oldWarn;
-
     /* eslint-enable no-console */
   });
 
